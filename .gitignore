@@ -34,3 +34,22 @@ FakeUnity/obj/*
 Unity/Unity.*
 Unity/Assembly-CSharp.*
 
+VolatilePhysics/VoltBody.cs
+.vscode/launch.json
+.vscode/tasks.json
+FixedMath.Net/bin/Debug/netstandard2.0/FixedMath.Net.deps.json
+FixedMath.Net/bin/Debug/netstandard2.0/FixedMath.Net.dll
+FixedMath.Net/bin/Debug/netstandard2.0/FixedMath.Net.pdb
+FixedMath.Net/bin/Release/netstandard2.0/FixedMath.Net.deps.json
+FixedMath.Net/bin/Release/netstandard2.0/FixedMath.Net.dll
+FixedMath.Net/bin/Release/netstandard2.0/FixedMath.Net.pdb
+.vs/VolatilePhysics/CopilotIndices/17.14.878.3237/CodeChunks.db
+.vs/VolatilePhysics/CopilotIndices/17.14.878.3237/CodeChunks.db-shm
+.vs/VolatilePhysics/CopilotIndices/17.14.878.3237/CodeChunks.db-wal
+.vs/VolatilePhysics/CopilotIndices/17.14.878.3237/SemanticSymbols.db
+.vs/VolatilePhysics/CopilotIndices/17.14.878.3237/SemanticSymbols.db-shm
+.vs/VolatilePhysics/CopilotIndices/17.14.878.3237/SemanticSymbols.db-wal
+.vs/VolatilePhysics/DesignTimeBuild/.dtbcache.v2
+.vs/VolatilePhysics/FileContentIndex/c46c8724-f7ad-4b29-87cb-df3d7c4e485c.vsidx
+.vs/VolatilePhysics/v17/DocumentLayout.backup.json
+.vs/VolatilePhysics/v17/DocumentLayout.json

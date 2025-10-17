@@ -58,74 +58,6 @@ namespace Volatile
         (a.IsStatic || b.IsStatic);
     }
 
-    #region History
-    /// <summary>
-    /// Tries to get a reference frame for a given number of ticks behind 
-    /// the current tick. Returns true if a value was found, false if a
-    /// value was not found (in which case we clamp to the nearest).
-    /// </summary>
-    public bool TryGetSpace(
-      int ticksBehind,
-      out VoltVector2 position,
-      out VoltVector2 facing)
-    {
-      if (ticksBehind < 0)
-        throw new ArgumentOutOfRangeException("ticksBehind");
-
-      if (ticksBehind == 0)
-      {
-        position = this.Position;
-        facing = this.Facing;
-        return true;
-      }
-
-      if (this.history == null)
-      {
-        position = this.Position;
-        facing = this.Facing;
-        return false;
-      }
-
-      HistoryRecord record;
-      bool found = this.history.TryGet(ticksBehind - 1, out record);
-      position = record.position;
-      facing = record.facing;
-      return found;
-    }
-
-    /// <summary>
-    /// Initializes the buffer for storing past body states/spaces.
-    /// </summary>
-    internal void AssignHistory(HistoryBuffer history)
-    {
-      VoltDebug.Assert(this.IsStatic == false);
-      this.history = history;
-    }
-
-    /// <summary>
-    /// Stores a snapshot of this body's current state/space to a tick.
-    /// </summary>
-    private void StoreState()
-    {
-      if (this.history != null)
-        this.history.Store(this.currentState);
-    }
-
-    /// <summary>
-    /// Retrieves a snapshot of the body's state/space at a tick.
-    /// Logs an error and defaults to the current state if it can't be found.
-    /// </summary>
-    private HistoryRecord GetState(int ticksBehind)
-    {
-      if ((ticksBehind == 0) || (this.history == null))
-        return this.currentState;
-
-      HistoryRecord output;
-      this.history.TryGet(ticksBehind - 1, out output);
-      return output;
-    }
-    #endregion
-
     public static bool Filter(VoltBody body, VoltBodyFilter filter)
     {
       return ((filter == null) || (filter.Invoke(body) == true));
@@ -150,25 +82,11 @@ namespace Volatile
     /// </summary>
     public bool IsInWorld { get { return this.World != null; } }
 
-    // Some basic properties are stored in an internal mutable
-    // record to avoid code redundancy when performing conversions
-    public VoltVector2 Position
-    {
-      get { return this.currentState.position; }
-      private set { this.currentState.position = value; }
-    }
+    public VoltVector2 Position { get; private set; }
 
-    public VoltVector2 Facing
-    {
-      get { return this.currentState.facing; }
-      private set { this.currentState.facing = value; }
-    }
+    public VoltVector2 Facing { get; private set; }
 
-    public VoltAABB AABB
-    {
-      get { return this.currentState.aabb; }
-      private set { this.currentState.aabb = value; }
-    }
+    public VoltAABB AABB { get; private set; }
 
 #if DEBUG
     internal bool IsInitialized { get; set; }
@@ -208,9 +126,6 @@ namespace Volatile
     internal VoltShape[] shapes;
     internal int shapeCount;
 
-    private HistoryBuffer history;
-    private HistoryRecord currentState;
-
     #region Manipulation
     public void AddTorque(Fix64 torque)
     {
@@ -235,7 +150,7 @@ namespace Volatile
       this.Facing = VoltMath.Polar(radians);
       this.OnPositionUpdated();
     }
-    
+
     public void SetForce(VoltVector2 force, Fix64 torque, VoltVector2 biasVelocity, Fix64 biasRotation)
     {
       this.Force = force;
@@ -243,7 +158,7 @@ namespace Volatile
       this.BiasVelocity = biasVelocity;
       this.BiasRotation = biasRotation;
     }
-    
+
     #endregion
 
     #region Tests
@@ -251,13 +166,9 @@ namespace Volatile
     /// Checks if an AABB overlaps with our AABB.
     /// </summary>
     internal bool QueryAABBOnly(
-      VoltAABB worldBounds,
-      int ticksBehind)
+      VoltAABB worldBounds)
     {
-      HistoryRecord record = this.GetState(ticksBehind);
-
-      // AABB check done in world space (because it keeps changing)
-      return record.aabb.Intersect(worldBounds);
+      return AABB.Intersect(worldBounds);
     }
 
     /// <summary>
@@ -266,18 +177,15 @@ namespace Volatile
     /// </summary>
     internal bool QueryPoint(
       VoltVector2 point,
-      int ticksBehind,
       bool bypassAABB = false)
     {
-      HistoryRecord record = this.GetState(ticksBehind);
-
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
-        if (record.aabb.QueryPoint(point) == false)
+        if (AABB.QueryPoint(point) == false)
           return false;
 
       // Actual query on shapes done in body space
-      VoltVector2 bodySpacePoint = record.WorldToBodyPoint(point);
+      VoltVector2 bodySpacePoint = WorldToBodyPoint(point);
       for (int i = 0; i < this.shapeCount; i++)
         if (this.shapes[i].QueryPoint(bodySpacePoint))
           return true;
@@ -291,18 +199,16 @@ namespace Volatile
     internal bool QueryCircle(
       VoltVector2 origin,
       Fix64 radius,
-      int ticksBehind,
       bool bypassAABB = false)
     {
-      HistoryRecord record = this.GetState(ticksBehind);
 
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
-        if (record.aabb.QueryCircleApprox(origin, radius) == false)
+        if (AABB.QueryCircleApprox(origin, radius) == false)
           return false;
 
       // Actual query on shapes done in body space
-      VoltVector2 bodySpaceOrigin = record.WorldToBodyPoint(origin);
+      VoltVector2 bodySpaceOrigin = WorldToBodyPoint(origin);
       for (int i = 0; i < this.shapeCount; i++)
         if (this.shapes[i].QueryCircle(bodySpaceOrigin, radius))
           return true;
@@ -316,18 +222,15 @@ namespace Volatile
     internal bool RayCast(
       ref VoltRayCast ray,
       ref VoltRayResult result,
-      int ticksBehind,
       bool bypassAABB = false)
     {
-      HistoryRecord record = this.GetState(ticksBehind);
-
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
-        if (record.aabb.RayCast(ref ray) == false)
+        if (AABB.RayCast(ref ray) == false)
           return false;
 
       // Actual tests on shapes done in body space
-      VoltRayCast bodySpaceRay = record.WorldToBodyRay(ref ray);
+      VoltRayCast bodySpaceRay = WorldToBodyRay(ref ray);
       for (int i = 0; i < this.shapeCount; i++)
         if (this.shapes[i].RayCast(ref bodySpaceRay, ref result))
           if (result.IsContained)
@@ -336,7 +239,7 @@ namespace Volatile
       // We need to convert the results back to world space to be any use
       // (Doesn't matter if we were contained since there will be no normal)
       if (result.Body == this)
-        result.normal = record.BodyToWorldDirection(result.normal);
+        result.normal = BodyToWorldDirection(result.normal);
       return result.IsValid;
     }
 
@@ -348,18 +251,15 @@ namespace Volatile
       ref VoltRayCast ray,
       Fix64 radius,
       ref VoltRayResult result,
-      int ticksBehind,
       bool bypassAABB = false)
     {
-      HistoryRecord record = this.GetState(ticksBehind);
-
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
-        if (record.aabb.CircleCastApprox(ref ray, radius) == false)
+        if (AABB.CircleCastApprox(ref ray, radius) == false)
           return false;
 
       // Actual tests on shapes done in body space
-      VoltRayCast bodySpaceRay = record.WorldToBodyRay(ref ray);
+      VoltRayCast bodySpaceRay = WorldToBodyRay(ref ray);
       for (int i = 0; i < this.shapeCount; i++)
         if (this.shapes[i].CircleCast(ref bodySpaceRay, radius, ref result))
           if (result.IsContained)
@@ -368,7 +268,7 @@ namespace Volatile
       // We need to convert the results back to world space to be any use
       // (Doesn't matter if we were contained since there will be no normal)
       if (result.Body == this)
-        result.normal = record.BodyToWorldDirection(result.normal);
+        result.normal = BodyToWorldDirection(result.normal);
       return result.IsValid;
     }
     #endregion
@@ -427,8 +327,6 @@ namespace Volatile
 
     internal void Update()
     {
-      if (this.history != null)
-        this.history.Store(this.currentState);
       this.Integrate();
       this.OnPositionUpdated();
     }
@@ -436,13 +334,6 @@ namespace Volatile
     internal void AssignWorld(VoltWorld world)
     {
       this.World = world;
-    }
-
-    internal void FreeHistory()
-    {
-      if ((this.World != null) && (this.history != null))
-        this.World.FreeHistory(this.history);
-      this.history = null;
     }
 
     internal void FreeShapes()
@@ -464,8 +355,9 @@ namespace Volatile
     /// </summary>
     internal void PartialReset()
     {
-      this.history = null;
-      this.currentState = default(HistoryRecord);
+      Position = VoltVector2.zero;
+      Facing = VoltVector2.zero;
+      AABB = new VoltAABB();
 
       this.LinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
@@ -508,8 +400,9 @@ namespace Volatile
       this.BiasVelocity = VoltVector2.zero;
       this.BiasRotation = Fix64.Zero;
 
-      this.history = null;
-      this.currentState = default(HistoryRecord);
+      Position = VoltVector2.zero;
+      Facing = VoltVector2.zero;
+      AABB = new VoltAABB();
     }
 
     #region Collision
@@ -540,17 +433,17 @@ namespace Volatile
     #region Transformation Shortcuts
     internal VoltVector2 WorldToBodyPointCurrent(VoltVector2 vector)
     {
-      return this.currentState.WorldToBodyPoint(vector);
+      return WorldToBodyPoint(vector);
     }
 
     internal VoltVector2 BodyToWorldPointCurrent(VoltVector2 vector)
     {
-      return this.currentState.BodyToWorldPoint(vector);
+      return BodyToWorldPoint(vector);
     }
 
     internal Axis BodyToWorldAxisCurrent(Axis axis)
     {
-      return this.currentState.BodyToWorldAxis(axis);
+      return BodyToWorldAxis(axis);
     }
     #endregion
 
@@ -674,7 +567,46 @@ namespace Volatile
 
       this.BodyType = VoltBodyType.Static;
     }
-#endregion
+    #endregion
+
+#region World-Space to Body-Space Transformations
+    internal VoltVector2 WorldToBodyPoint(VoltVector2 vector)
+    {
+      return VoltMath.WorldToBodyPoint(this.Position, this.Facing, vector);
+    }
+
+    internal VoltVector2 WorldToBodyDirection(VoltVector2 vector)
+    {
+      return VoltMath.WorldToBodyDirection(this.Facing, vector);
+    }
+
+    internal VoltRayCast WorldToBodyRay(ref VoltRayCast rayCast)
+    {
+      return new VoltRayCast(
+        this.WorldToBodyPoint(rayCast.origin),
+        this.WorldToBodyDirection(rayCast.direction),
+        rayCast.distance);
+    }
+    #endregion
+
+    #region Body-Space to World-Space Transformations
+    internal VoltVector2 BodyToWorldPoint(VoltVector2 vector)
+    {
+      return VoltMath.BodyToWorldPoint(this.Position, this.Facing, vector);
+    }
+
+    internal VoltVector2 BodyToWorldDirection(VoltVector2 vector)
+    {
+      return VoltMath.BodyToWorldDirection(this.Facing, vector);
+    }
+
+    internal Axis BodyToWorldAxis(Axis axis)
+    {
+      VoltVector2 normal = axis.Normal.Rotate(this.Facing);
+      Fix64 width = VoltVector2.Dot(normal, this.Position) + axis.Width;
+      return new Axis(normal, width);
+    }
+    #endregion
 
     #region Debug
 #if UNITY && DEBUG
@@ -708,17 +640,6 @@ namespace Volatile
           shapeOriginColor,
           shapeAabbColor,
           normalLength);
-
-      Gizmos.color = current;
-    }
-
-    public void GizmoDrawHistory(Color aabbColor)
-    {
-      Color current = Gizmos.color;
-
-      if (this.history != null)
-        foreach (HistoryRecord record in this.history.GetValues())
-          record.aabb.GizmoDraw(aabbColor);
 
       Gizmos.color = current;
     }

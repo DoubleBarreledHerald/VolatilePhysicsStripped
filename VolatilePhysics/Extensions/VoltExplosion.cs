@@ -92,15 +92,14 @@ namespace Volatile
     /// Gets the distance to the closest occluder for the given ray.
     /// </summary>
     private Fix64 GetOccludingDistance(
-      VoltRayCast ray,
-      int ticksBehind)
+      VoltRayCast ray)
     {
       Fix64 distance = Fix64.MaxValue;
       VoltRayResult result = default(VoltRayResult);
 
       for (int i = 0; i < this.occludingBodies.Count; i++)
       {
-        if (this.occludingBodies[i].RayCast(ref ray, ref result, ticksBehind))
+        if (this.occludingBodies[i].RayCast(ref ray, ref result))
           distance = result.Distance;
         if (result.IsContained)
           break;
