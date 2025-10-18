@@ -125,6 +125,8 @@ namespace Volatile
 
     internal VoltShape[] shapes;
     internal int shapeCount;
+    
+    internal bool DynamicsChanged = false;
 
     #region Manipulation
     public void AddTorque(Fix64 torque)
@@ -327,6 +329,11 @@ namespace Volatile
 
     internal void Update()
     {
+      if (DynamicsChanged)
+      {
+        ComputeDynamics();
+        DynamicsChanged = false;
+      }
       this.Integrate();
       this.OnPositionUpdated();
     }
@@ -536,7 +543,7 @@ namespace Volatile
       for (int i = 0; i < this.shapeCount; i++)
       {
         VoltShape shape = this.shapes[i];
-        if (shape.Density == Fix64.Zero)
+        if (shape.Mass == Fix64.Zero)
           continue;
         Fix64 curMass = shape.Mass;
         Fix64 curInertia = shape.Inertia;
@@ -569,7 +576,7 @@ namespace Volatile
     }
     #endregion
 
-#region World-Space to Body-Space Transformations
+    #region World-Space to Body-Space Transformations
     internal VoltVector2 WorldToBodyPoint(VoltVector2 vector)
     {
       return VoltMath.WorldToBodyPoint(this.Position, this.Facing, vector);

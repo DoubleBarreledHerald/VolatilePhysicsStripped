@@ -17,7 +17,7 @@ public class VolatileCircle : VolatileShape
     this.shape = world.CreateCircleWorldSpace(
       this.transform.position.ToFixed(),
       this.radius.ToFixed(), 
-      this.density.ToFixed());
+      this.mass.ToFixed());
     return this.shape;
   }
 

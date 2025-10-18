@@ -64,8 +64,7 @@ namespace Volatile
     public object UserData { get; set; }
     public VoltBody Body { get; private set; }
 
-    internal Fix64 Density { get; private set; }
-    internal Fix64 Friction { get; private set; }
+    public Fix64 Friction;
     internal Fix64 Restitution { get; private set; }
 
     /// <summary>
@@ -81,7 +80,7 @@ namespace Volatile
     /// <summary>
     /// Total mass of the shape (area * density).
     /// </summary>
-    public Fix64 Mass { get; protected set; }
+    public Fix64 Mass;
 
     /// <summary>
     /// Total inertia of the shape relative to the body's origin.
@@ -161,11 +160,11 @@ namespace Volatile
     #endregion
 
     protected void Initialize(
-      Fix64 density, 
+      Fix64 mass, 
       Fix64 friction, 
       Fix64 restitution)
     {
-      this.Density = density;
+      this.Mass = mass;
       this.Friction = friction;
       this.Restitution = restitution;
 
@@ -183,7 +182,6 @@ namespace Volatile
       this.UserData = null;
       this.Body = null;
 
-      this.Density = Fix64.Zero;
       this.Friction = Fix64.Zero;
       this.Restitution = Fix64.Zero;
 

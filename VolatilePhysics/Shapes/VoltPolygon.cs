@@ -33,11 +33,11 @@ namespace Volatile
     #region Factory Functions
     internal void InitializeFromWorldVertices(
       VoltVector2[] vertices,
-      Fix64 density,
+      Fix64 mass,
       Fix64 friction,
       Fix64 restitution)
     {
-      base.Initialize(density, friction, restitution);
+      base.Initialize(mass, friction, restitution);
       this.UpdateArrays(vertices.Length);
 
       this.countWorld = vertices.Length;
@@ -51,11 +51,11 @@ namespace Volatile
 
     internal void InitializeFromBodyVertices(
       VoltVector2[] vertices,
-      Fix64 density,
+      Fix64 mass,
       Fix64 friction,
       Fix64 restitution)
     {
-      base.Initialize(density, friction, restitution);
+      base.Initialize(mass, friction, restitution);
       this.UpdateArrays(vertices.Length);
 
       // World vertices will be computed on position update
@@ -167,7 +167,6 @@ namespace Volatile
       }
 
       this.Area = this.ComputeArea();
-      this.Mass = this.Area * this.Density * VoltConfig.AreaMassRatio;
       this.Inertia = this.ComputeInertia();
     }
 

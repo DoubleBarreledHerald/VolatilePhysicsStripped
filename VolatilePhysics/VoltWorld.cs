@@ -132,76 +132,76 @@ namespace Volatile
         /// Creates a new polygon shape from world-space vertices.
         /// </summary>
         public VoltPolygon CreatePolygonWorldSpace(
-          VoltVector2[] worldVertices, Fix64 density, Fix64 friction, Fix64 restitution)
+          VoltVector2[] worldVertices, Fix64 mass, Fix64 friction, Fix64 restitution)
         {
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromWorldVertices(
               worldVertices,
-              density,
+              mass,
               friction,
               restitution);
             return polygon;
         }
 
-        public VoltPolygon CreatePolygonWorldSpace(VoltVector2[] worldVertices, Fix64 density)
+        public VoltPolygon CreatePolygonWorldSpace(VoltVector2[] worldVertices, Fix64 mass)
         {
-            return CreatePolygonWorldSpace(worldVertices, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+            return CreatePolygonWorldSpace(worldVertices, mass, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
         }
 
         public VoltPolygon CreatePolygonWorldSpace(VoltVector2[] worldVertices)
         {
-            return CreatePolygonWorldSpace(worldVertices, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+            return CreatePolygonWorldSpace(worldVertices, VoltConfig.DEFAULT_MASS, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
         }
 
         /// <summary>
         /// Creates a new polygon shape from body-space vertices.
         /// </summary>
         public VoltPolygon CreatePolygonBodySpace(
-          VoltVector2[] bodyVertices, Fix64 density, Fix64 friction, Fix64 restitution)
+          VoltVector2[] bodyVertices, Fix64 mass, Fix64 friction, Fix64 restitution)
         {
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromBodyVertices(
               bodyVertices,
-              density,
+              mass,
               friction,
               restitution);
             return polygon;
         }
         
-        public VoltPolygon CreatePolygonBodySpace(VoltVector2[] bodyVertices, Fix64 density)
+        public VoltPolygon CreatePolygonBodySpace(VoltVector2[] bodyVertices, Fix64 mass)
         {
-            return CreatePolygonBodySpace(bodyVertices, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+            return CreatePolygonBodySpace(bodyVertices, mass, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
         }
         
         public VoltPolygon CreatePolygonBodySpace(VoltVector2[] bodyVertices)
         {
-            return CreatePolygonBodySpace(bodyVertices, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+            return CreatePolygonBodySpace(bodyVertices, VoltConfig.DEFAULT_MASS, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
         }
 
         /// <summary>
         /// Creates a new circle shape from a world-space origin.
         /// </summary>
         public VoltCircle CreateCircleWorldSpace(
-          VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density, Fix64 friction, Fix64 restitution)
+          VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 mass, Fix64 friction, Fix64 restitution)
         {
             VoltCircle circle = (VoltCircle)this.circlePool.Allocate();
             circle.InitializeFromWorldSpace(
               worldSpaceOrigin,
               radius,
-              density,
+              mass,
               friction,
               restitution);
             return circle;
         }
 
-        public VoltCircle CreateCircleWorldSpace(VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density)
+        public VoltCircle CreateCircleWorldSpace(VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 mass)
         {
-            return CreateCircleWorldSpace(worldSpaceOrigin, radius, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+            return CreateCircleWorldSpace(worldSpaceOrigin, radius, mass, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
         }
         
         public VoltCircle CreateCircleWorldSpace(VoltVector2 worldSpaceOrigin, Fix64 radius)
         {
-            return CreateCircleWorldSpace(worldSpaceOrigin, radius, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+            return CreateCircleWorldSpace(worldSpaceOrigin, radius, VoltConfig.DEFAULT_MASS, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
         }
 
         /// <summary>

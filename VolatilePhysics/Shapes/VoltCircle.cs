@@ -34,11 +34,11 @@ namespace Volatile
     internal void InitializeFromWorldSpace(
       VoltVector2 worldSpaceOrigin, 
       Fix64 radius,
-      Fix64 density,
+      Fix64 mass,
       Fix64 friction,
       Fix64 restitution)
     {
-      base.Initialize(density, friction, restitution);
+      base.Initialize(mass, friction, restitution);
 
       this.worldSpaceOrigin = worldSpaceOrigin;
       this.radius = radius;
@@ -87,7 +87,6 @@ namespace Volatile
       this.bodySpaceAABB = new VoltAABB(this.bodySpaceOrigin, this.radius);
 
       this.Area = this.sqrRadius * VoltMath.PI;
-      this.Mass = this.Area * this.Density * VoltConfig.AreaMassRatio;
       this.Inertia =
         this.sqrRadius / (Fix64)2 + this.bodySpaceOrigin.sqrMagnitude;
     }

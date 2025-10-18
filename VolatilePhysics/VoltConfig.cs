@@ -35,7 +35,7 @@ namespace Volatile
     public static Fix64 AreaMassRatio = (Fix64)0.01M;
 
     // Defaults
-    public static readonly Fix64 DEFAULT_DENSITY = Fix64.One;
+    public static readonly Fix64 DEFAULT_MASS = (Fix64)1M;
     public static readonly Fix64 DEFAULT_RESTITUTION = (Fix64)0.5M;
     public static readonly Fix64 DEFAULT_FRICTION = (Fix64)0.8M;
 

@@ -19,7 +19,7 @@ public class VolatilePolygon : VolatileShape
       vertices[i] = this.points[i].position.ToFixed();
     this.shape = world.CreatePolygonWorldSpace(
       vertices, 
-      this.density.ToFixed());
+      this.mass.ToFixed());
     return this.shape;
   }
 
