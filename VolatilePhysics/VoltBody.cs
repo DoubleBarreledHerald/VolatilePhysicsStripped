@@ -74,6 +74,23 @@ namespace Volatile
           throw new InvalidOperationException();
         return this.BodyType == VoltBodyType.Static;
       }
+      set
+      {
+        if (this.BodyType == VoltBodyType.Invalid)
+          throw new InvalidOperationException();
+        //already set
+        if ((this.BodyType == VoltBodyType.Static) == value) return;
+        if (value)
+        {
+          //static
+          SetStatic();
+        }
+        else
+        {
+          //dynamic
+          ComputeDynamics();
+        }
+      }
     }
 
     /// <summary>
@@ -112,6 +129,9 @@ namespace Volatile
     public VoltVector2 Force { get; private set; }
     public Fix64 Torque { get; private set; }
 
+    /// <summary>
+    /// The added mass of all of the shapes that make up the body.
+    /// </summary>
     public Fix64 Mass { get; private set; }
     public Fix64 Inertia { get; private set; }
     public Fix64 InvMass { get; private set; }
@@ -125,8 +145,6 @@ namespace Volatile
 
     internal VoltShape[] shapes;
     internal int shapeCount;
-    
-    internal bool DynamicsChanged = false;
 
     #region Manipulation
     public void AddTorque(Fix64 torque)
@@ -329,11 +347,6 @@ namespace Volatile
 
     internal void Update()
     {
-      if (DynamicsChanged)
-      {
-        ComputeDynamics();
-        DynamicsChanged = false;
-      }
       this.Integrate();
       this.OnPositionUpdated();
     }
