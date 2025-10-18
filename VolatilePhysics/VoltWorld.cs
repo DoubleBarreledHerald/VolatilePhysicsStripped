@@ -69,11 +69,6 @@ namespace Volatile
         /// </summary>
         public int IterationCount { get; set; }
 
-        /// <summary>
-        /// How many frames of history this world is recording.
-        /// </summary>
-        public int HistoryLength { get; private set; }
-
         public IEnumerable<VoltBody> Bodies
         {
             get
@@ -103,11 +98,9 @@ namespace Volatile
 
         private IVoltPool<Contact> contactPool;
         private IVoltPool<Manifold> manifoldPool;
-        private IVoltPool<HistoryBuffer> historyPool;
 
-        public VoltWorld(int historyLength, Fix64 damping)
+        public VoltWorld(Fix64 damping)
         {
-            this.HistoryLength = historyLength;
             this.Damping = damping;
 
             this.IterationCount = VoltConfig.DEFAULT_ITERATION_COUNT;
@@ -128,10 +121,9 @@ namespace Volatile
 
             this.contactPool = new VoltPool<Contact>();
             this.manifoldPool = new VoltPool<Manifold>();
-            this.historyPool = new VoltPool<HistoryBuffer>();
         }
 
-        public VoltWorld(int historyLength = 0) : this(historyLength, VoltConfig.DEFAULT_DAMPING)
+        public VoltWorld() : this(VoltConfig.DEFAULT_DAMPING)
         {
 
         }
@@ -340,12 +332,8 @@ namespace Volatile
         /// </summary>
         public VoltBuffer<VoltBody> QueryPoint(
           VoltVector2 point,
-          VoltBodyFilter filter = null,
-          int ticksBehind = 0)
+          VoltBodyFilter filter = null)
         {
-            if (ticksBehind < 0)
-                throw new ArgumentOutOfRangeException("ticksBehind");
-
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryPoint(point, this.reusableBuffer);
             this.dynamicBroadphase.QueryPoint(point, this.reusableBuffer);
@@ -355,7 +343,7 @@ namespace Volatile
             {
                 VoltBody body = this.reusableBuffer[i];
                 if (VoltBody.Filter(body, filter))
-                    if (body.QueryPoint(point, ticksBehind))
+                    if (body.QueryPoint(point))
                         this.reusableOutput.Add(body);
             }
             return this.reusableOutput;
@@ -370,12 +358,8 @@ namespace Volatile
         public VoltBuffer<VoltBody> QueryCircle(
           VoltVector2 origin,
           Fix64 radius,
-          VoltBodyFilter filter = null,
-          int ticksBehind = 0)
+          VoltBodyFilter filter = null)
         {
-            if (ticksBehind < 0)
-                throw new ArgumentOutOfRangeException("ticksBehind");
-
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
             this.dynamicBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
@@ -385,7 +369,7 @@ namespace Volatile
             {
                 VoltBody body = this.reusableBuffer[i];
                 if (VoltBody.Filter(body, filter))
-                    if (body.QueryCircle(origin, radius, ticksBehind))
+                    if (body.QueryCircle(origin, radius))
                         this.reusableOutput.Add(body);
             }
 
@@ -398,12 +382,8 @@ namespace Volatile
         public bool RayCast(
           ref VoltRayCast ray,
           ref VoltRayResult result,
-          VoltBodyFilter filter = null,
-          int ticksBehind = 0)
+          VoltBodyFilter filter = null)
         {
-            if (ticksBehind < 0)
-                throw new ArgumentOutOfRangeException("ticksBehind");
-
             this.reusableBuffer.Clear();
             this.staticBroadphase.RayCast(ref ray, this.reusableBuffer);
             this.dynamicBroadphase.RayCast(ref ray, this.reusableBuffer);
@@ -413,7 +393,7 @@ namespace Volatile
                 VoltBody body = this.reusableBuffer[i];
                 if (VoltBody.Filter(body, filter))
                 {
-                    body.RayCast(ref ray, ref result, ticksBehind);
+                    body.RayCast(ref ray, ref result);
                     if (result.IsContained)
                         return true;
                 }
@@ -429,12 +409,8 @@ namespace Volatile
           ref VoltRayCast ray,
           Fix64 radius,
           ref VoltRayResult result,
-          VoltBodyFilter filter = null,
-          int ticksBehind = 0)
+          VoltBodyFilter filter = null)
         {
-            if (ticksBehind < 0)
-                throw new ArgumentOutOfRangeException("ticksBehind");
-
             this.reusableBuffer.Clear();
             this.staticBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);
             this.dynamicBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);
@@ -444,7 +420,7 @@ namespace Volatile
                 VoltBody body = this.reusableBuffer[i];
                 if (VoltBody.Filter(body, filter))
                 {
-                    body.CircleCast(ref ray, radius, ref result, ticksBehind);
+                    body.CircleCast(ref ray, radius, ref result);
                     if (result.IsContained)
                         return true;
                 }
@@ -462,8 +438,6 @@ namespace Volatile
                 this.dynamicBroadphase.AddBody(body);
 
             body.AssignWorld(this);
-            if ((this.HistoryLength > 0) && (body.IsStatic == false))
-                body.AssignHistory(this.AllocateHistory());
         }
 
         private void RemoveBodyInternal(VoltBody body)
@@ -474,7 +448,6 @@ namespace Volatile
             else
                 this.dynamicBroadphase.RemoveBody(body);
 
-            body.FreeHistory();
             body.AssignWorld(null);
         }
 
@@ -581,13 +554,6 @@ namespace Volatile
             return this.manifoldPool.Allocate();
         }
 
-        private HistoryBuffer AllocateHistory()
-        {
-            HistoryBuffer history = this.historyPool.Allocate();
-            history.Initialize(this.HistoryLength);
-            return history;
-        }
-
         private void FreeBody(VoltBody body)
         {
             this.bodyPool.Deallocate(body);
@@ -604,11 +570,6 @@ namespace Volatile
         {
             for (int i = 0; i < contacts.Count; i++)
                 this.contactPool.Deallocate(contacts[i]);
-        }
-
-        internal void FreeHistory(HistoryBuffer history)
-        {
-            this.historyPool.Deallocate(history);
         }
 
         internal void FreeShape(VoltShape shape)

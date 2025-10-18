@@ -49,18 +49,13 @@ namespace Volatile
       VoltExplosionCallback callback,
       VoltBodyFilter targetFilter = null,
       VoltBodyFilter occlusionFilter = null,
-      int ticksBehind = 0,
       int rayCount = 32)
     {
-      if (ticksBehind < 0)
-        throw new ArgumentOutOfRangeException("ticksBehind");
-
       // Get all target bodies
       this.PopulateFiltered(
         origin, 
         radius, 
         targetFilter, 
-        ticksBehind, 
         ref this.targetBodies);
 
       // Get all occluding bodies
@@ -68,7 +63,6 @@ namespace Volatile
         origin,
         radius,
         occlusionFilter,
-        ticksBehind,
         ref this.occludingBodies);
 
       VoltRayCast ray;
@@ -81,10 +75,10 @@ namespace Volatile
         ray = new VoltRayCast(origin, normal, radius);
 
         Fix64 minDistance = 
-          this.GetOccludingDistance(ray, ticksBehind);
+          this.GetOccludingDistance(ray);
         minDistance += VoltWorld.EXPLOSION_OCCLUDER_SLOP;
 
-        this.TestTargets(ray, callback, ticksBehind, minDistance, rayWeight);
+        this.TestTargets(ray, callback, minDistance, rayWeight);
       }
     }
 
@@ -114,7 +108,6 @@ namespace Volatile
     private void TestTargets(
       VoltRayCast ray,
       VoltExplosionCallback callback,
-      int ticksBehind,
       Fix64 minOccluderDistance,
       Fix64 rayWeight)
     {
@@ -123,7 +116,7 @@ namespace Volatile
         VoltBody targetBody = this.targetBodies[i];
         VoltRayResult result = default(VoltRayResult);
 
-        if (targetBody.RayCast(ref ray, ref result, ticksBehind))
+        if (targetBody.RayCast(ref ray, ref result))
           if (result.Distance < minOccluderDistance)
             callback.Invoke(ray, result, rayWeight);
       }
@@ -137,7 +130,6 @@ namespace Volatile
       VoltVector2 origin,
       Fix64 radius,
       VoltBodyFilter targetFilter,
-      int ticksBehind,
       ref VoltBuffer<VoltBody> filterBuffer)
     {
       if (filterBuffer == null)
@@ -153,7 +145,7 @@ namespace Volatile
       {
         VoltBody body = this.reusableBuffer[i];
         if ((targetFilter == null) || targetFilter.Invoke(body))
-          if (body.QueryAABBOnly(aabb, ticksBehind))
+          if (body.QueryAABBOnly(aabb))
             filterBuffer.Add(body);
       }
     }
