@@ -64,8 +64,8 @@ namespace Volatile
     public object UserData { get; set; }
     public VoltBody Body { get; private set; }
 
-    public Fix64 Friction;
-    internal Fix64 Restitution { get; private set; }
+    public Fix64 Friction { get; set; }
+    internal Fix64 Restitution { get; set; }
 
     /// <summary>
     /// The world-space bounding AABB for this shape.
@@ -80,7 +80,7 @@ namespace Volatile
     /// <summary>
     /// Total mass of the shape (area * density).
     /// </summary>
-    public Fix64 Mass;
+    public Fix64 Mass { get; set; }
 
     /// <summary>
     /// Total inertia of the shape relative to the body's origin.
