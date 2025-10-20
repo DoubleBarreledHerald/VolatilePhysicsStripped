@@ -34,11 +34,10 @@ namespace Volatile
     internal void InitializeFromWorldSpace(
       VoltVector2 worldSpaceOrigin, 
       Fix64 radius,
-      Fix64 mass,
       Fix64 friction,
       Fix64 restitution)
     {
-      base.Initialize(mass, friction, restitution);
+      base.Initialize(friction, restitution);
 
       this.worldSpaceOrigin = worldSpaceOrigin;
       this.radius = radius;

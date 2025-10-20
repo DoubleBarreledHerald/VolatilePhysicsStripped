@@ -137,7 +137,6 @@ namespace Volatile
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromWorldVertices(
               worldVertices,
-              mass,
               friction,
               restitution);
             return polygon;
@@ -162,7 +161,6 @@ namespace Volatile
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromBodyVertices(
               bodyVertices,
-              mass,
               friction,
               restitution);
             return polygon;
@@ -188,7 +186,6 @@ namespace Volatile
             circle.InitializeFromWorldSpace(
               worldSpaceOrigin,
               radius,
-              mass,
               friction,
               restitution);
             return circle;

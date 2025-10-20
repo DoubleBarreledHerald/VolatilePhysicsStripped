@@ -550,7 +550,6 @@ namespace Volatile
 
     private void ComputeDynamics()
     {
-      this.Mass = Fix64.Zero;
       this.Inertia = Fix64.Zero;
 
       for (int i = 0; i < this.shapeCount; i++)
@@ -558,10 +557,10 @@ namespace Volatile
         VoltShape shape = this.shapes[i];
         if (shape.Mass == Fix64.Zero)
           continue;
-        Fix64 curMass = shape.Mass;
+        //Fix64 curMass = shape.Mass;
         Fix64 curInertia = shape.Inertia;
 
-        this.Mass += curMass;
+        //this.Mass += curMass;
         this.Inertia += curMass * curInertia;
       }
 

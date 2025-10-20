@@ -78,11 +78,6 @@ namespace Volatile
     public Fix64 Area { get; protected set; }
 
     /// <summary>
-    /// Total mass of the shape (area * density).
-    /// </summary>
-    public Fix64 Mass { get; set; }
-
-    /// <summary>
     /// Total inertia of the shape relative to the body's origin.
     /// </summary>
     public Fix64 Inertia { get; protected set; }
@@ -160,11 +155,9 @@ namespace Volatile
     #endregion
 
     protected void Initialize(
-      Fix64 mass, 
       Fix64 friction, 
       Fix64 restitution)
     {
-      this.Mass = mass;
       this.Friction = friction;
       this.Restitution = restitution;
 
@@ -186,7 +179,6 @@ namespace Volatile
       this.Restitution = Fix64.Zero;
 
       this.Area = Fix64.Zero;
-      this.Mass = Fix64.Zero;
       this.Inertia = Fix64.Zero;
 
       this.bodySpaceAABB = default(VoltAABB);
