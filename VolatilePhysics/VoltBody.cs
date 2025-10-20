@@ -112,8 +112,55 @@ namespace Volatile
     public VoltVector2 Force { get; private set; }
     public Fix64 Torque { get; private set; }
 
-    public Fix64 Mass { get; private set; }
-    public Fix64 Inertia { get; private set; }
+    public Fix64 Mass
+    {
+      get
+      {
+        if (_mass != null)
+          return _mass.GetValueOrDefault();
+        //
+        return collMass;
+      }
+      set
+      {
+        if (_mass == value) return;
+        _mass = value;
+        //recalculate
+        ComputeDynamics();
+      }
+    }
+    /// <summary>
+    /// Overrides the Mass value;
+    /// </summary>
+    private Fix64? _mass { get; set; } = null;
+    /// <summary>
+    /// The collective mass of each shape that makes up the body.
+    /// </summary>
+    private Fix64 collMass { get; set; }
+    public Fix64 Inertia
+    {
+      get
+      {
+        if (_inertia != null)
+          return _inertia.GetValueOrDefault();
+        return collInertia;
+      }
+      set
+      {
+        if (_inertia == value) return;
+        _inertia = value;
+        //recalculate
+        ComputeDynamics();
+      }
+    }
+    /// <summary>
+    /// Overrides the Inertia value;
+    /// </summary>
+    private Fix64? _inertia { get; set; } = null;
+    /// <summary>
+    /// The collective inertia of each shape that makes up the body.
+    /// </summary>
+    private Fix64 collInertia { get; set; }
     public Fix64 InvMass { get; private set; }
     public Fix64 InvInertia { get; private set; }
 
@@ -125,6 +172,10 @@ namespace Volatile
 
     internal VoltShape[] shapes;
     internal int shapeCount;
+    /// <summary>
+    /// The collective area of each shape that makes up the body.
+    /// </summary>
+    public Fix64 Area { get; private set; }
 
     #region Manipulation
     public void AddTorque(Fix64 torque)
@@ -318,7 +369,11 @@ namespace Volatile
       Array.Copy(shapesToAdd, this.shapes, shapesToAdd.Length);
       this.shapeCount = shapesToAdd.Length;
       for (int i = 0; i < this.shapeCount; i++)
-        this.shapes[i].AssignBody(this);
+      {
+        VoltShape shape = this.shapes[i];
+        shape.AssignBody(this);
+        this.Area += shape.Area;
+      }
 
 #if DEBUG
       this.IsInitialized = true;
@@ -530,8 +585,8 @@ namespace Volatile
 
     private void ComputeDynamics()
     {
-      this.Mass = Fix64.Zero;
-      this.Inertia = Fix64.Zero;
+      this.collMass = Fix64.Zero;
+      this.collInertia = Fix64.Zero;
 
       for (int i = 0; i < this.shapeCount; i++)
       {
@@ -539,13 +594,18 @@ namespace Volatile
         if (shape.Density == Fix64.Zero)
           continue;
         Fix64 curMass = shape.Mass;
+        if (this._mass != null)
+        {
+          curMass = _mass.GetValueOrDefault() * (shape.Area / this.Area);
+        }
+
         Fix64 curInertia = shape.Inertia;
 
-        this.Mass += curMass;
-        this.Inertia += curMass * curInertia;
+        this.collMass += curMass;
+        this.collInertia += curMass * curInertia;
       }
 
-      if (this.Mass < VoltConfig.MINIMUM_DYNAMIC_MASS)
+      if (this.collMass < VoltConfig.MINIMUM_DYNAMIC_MASS)
       {
         throw new InvalidOperationException("Mass of dynamic too small");
       }
