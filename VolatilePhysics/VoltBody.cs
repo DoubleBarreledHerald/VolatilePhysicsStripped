@@ -126,11 +126,13 @@ namespace Volatile
     public VoltVector2 LinearVelocity { get; set; }
     public Fix64 AngularVelocity { get; set; }
 
-    public Fix64 LinearDamping { get; set; }
-    public Fix64 AngularDamping { get; set; }
+    public Fix64 LinearDamping { get; set; } = (Fix64)1;
+    public Fix64 AngularDamping { get; set; } = (Fix64)1;
 
     public VoltVector2 Force { get; private set; }
     public Fix64 Torque { get; private set; }
+
+    public VoltVector2 Gravity { get; set; }
 
     public Fix64 Mass
     {
@@ -563,9 +565,12 @@ namespace Volatile
     /// </summary>
     private void Integrate()
     {
+      //Apply gravity
+      this.Force += (World.Gravity + Gravity) * Mass;
+
       // Apply damping
-      this.LinearVelocity *= this.World.Damping * LinearDamping;
-      this.AngularVelocity *= this.World.Damping * AngularDamping;
+      this.LinearVelocity *= this.World.Damping * this.LinearDamping;
+      this.AngularVelocity *= this.World.Damping * this.AngularDamping;
 
       // Calculate total force and torque
       VoltVector2 totalForce = this.Force * this.InvMass;

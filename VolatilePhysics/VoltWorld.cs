@@ -80,6 +80,7 @@ namespace Volatile
 
         internal Fix64 Elasticity { get; private set; }
         internal Fix64 Damping { get; private set; }
+        public VoltVector2 Gravity { get; set; }
 
         private CheapList<VoltBody> bodies;
         private List<Manifold> manifolds;
