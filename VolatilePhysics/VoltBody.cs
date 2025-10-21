@@ -65,6 +65,7 @@ namespace Volatile
 
     /// <summary>
     /// Static objects are considered to have infinite mass and cannot move.
+    /// Setting will reset all active forces on the body.
     /// </summary>
     public bool IsStatic
     {
@@ -93,10 +94,6 @@ namespace Volatile
       }
     }
 
-    /// <summary>
-    /// If we're doing historical queries or tests, the body may have since
-    /// been removed from the world.
-    /// </summary>
     public bool IsInWorld { get { return this.World != null; } }
 
     public VoltVector2 Position { get; private set; }
@@ -126,15 +123,31 @@ namespace Volatile
     public VoltVector2 LinearVelocity { get; set; }
     public Fix64 AngularVelocity { get; set; }
 
+    /// <summary>
+    /// The local linear damping.
+    /// </summary>
     public Fix64 LinearDamping { get; set; } = (Fix64)1;
+    /// <summary>
+    /// The local angular damping.
+    /// </summary>
     public Fix64 AngularDamping { get; set; } = (Fix64)1;
 
     public VoltVector2 Force { get; private set; }
     public Fix64 Torque { get; private set; }
-
+    
+    /// <summary>
+    /// Sets whether or not the body will be affected by the World's gravity. 
+    /// </summary>
     public bool IsAffectedByWorldGravity { get; set; } = true;
+    /// <summary>
+    /// The local gravity of the body.
+    /// </summary>
     public VoltVector2 Gravity { get; set; }
 
+    /// <summary>
+    /// The collective mass of each of the shapes that make up the body.
+    /// If set, overrides.
+    /// </summary>
     public Fix64 Mass
     {
       get
