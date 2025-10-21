@@ -74,6 +74,23 @@ namespace Volatile
           throw new InvalidOperationException();
         return this.BodyType == VoltBodyType.Static;
       }
+      set
+      {
+        if (this.BodyType == VoltBodyType.Invalid)
+          throw new InvalidOperationException();
+        //already set
+        if ((this.BodyType == VoltBodyType.Static) == value) return;
+        if (value)
+        {
+          //static
+          SetStatic();
+        }
+        else
+        {
+          //dynamic
+          ComputeDynamics();
+        }
+      }
     }
 
     /// <summary>
