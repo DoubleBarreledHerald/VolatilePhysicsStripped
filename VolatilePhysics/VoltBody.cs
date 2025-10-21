@@ -132,6 +132,7 @@ namespace Volatile
     public VoltVector2 Force { get; private set; }
     public Fix64 Torque { get; private set; }
 
+    public bool IsAffectedByWorldGravity { get; set; } = true;
     public VoltVector2 Gravity { get; set; }
 
     public Fix64 Mass
@@ -566,7 +567,12 @@ namespace Volatile
     private void Integrate()
     {
       //Apply gravity
-      this.Force += (World.Gravity + Gravity) * Mass;
+      this.Force +=
+        (
+          (IsAffectedByWorldGravity ? World.Gravity : VoltVector2.zero)
+           + Gravity
+        )
+         * Mass;
 
       // Apply damping
       this.LinearVelocity *= this.World.Damping * this.LinearDamping;
