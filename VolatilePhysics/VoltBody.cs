@@ -207,7 +207,7 @@ namespace Volatile
     // Used for broadphase structures
     internal int ProxyId { get; set; }
 
-    internal VoltShape[] shapes;
+    public VoltShape[] shapes { get; private set; }
     internal int shapeCount;
     /// <summary>
     /// The collective area of each shape that makes up the body.

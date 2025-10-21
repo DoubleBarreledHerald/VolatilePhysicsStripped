@@ -124,7 +124,7 @@ namespace Volatile
     #endregion
 
     #region Fields
-    internal VoltVector2[] worldVertices;
+    public VoltVector2[] worldVertices { get; private set; }
     internal Axis[] worldAxes;
     internal int countWorld;
 
