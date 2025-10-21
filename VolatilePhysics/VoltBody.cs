@@ -464,8 +464,10 @@ namespace Volatile
       this.Force = VoltVector2.zero;
       this.Torque = Fix64.Zero;
 
-      this.Mass = Fix64.Zero;
-      this.Inertia = Fix64.Zero;
+      this._mass = null;
+      this.collMass = Fix64.Zero;
+      this._inertia = null;
+      this.collInertia = Fix64.Zero;
       this.InvMass = Fix64.Zero;
       this.InvInertia = Fix64.Zero;
 
