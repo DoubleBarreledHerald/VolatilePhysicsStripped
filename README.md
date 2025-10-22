@@ -1,3 +1,11 @@
+**VolatilePhysics-Stripped**
+
+This is a fork of [VolatilePhysics-FixedMath](https://github.com/cathei/VolatilePhysics-FixedMath), built for .NET Standard
+
+Restructured for more exposed variables at the cost of VolatilePhysics' history functions.
+
+---
+
 **VolatilePhysics-FixedMath**
 
 This is the deterministic fork of [VolatilePhysics](https://github.com/ashoulson/VolatilePhysics), built for .NET Standard
@@ -30,15 +38,21 @@ Supported Physics Tasks:
 - Point and circle queries
 - Discrete collision detection and resolution bodies
 - Force/torque application and integration on dynamic bodies
+- real-time variable setting for:
+    - Mass
+    - Inertia
+    - Static/Dynamic body type
+    - Gravity strength and direction
+    - Physics body Linear and Angular Damping
 - **Determinism**
 
 Wishlist:
-- Continuous collision detection
-- Broadphase spatial decomposition (previous attempts have not improved performance)
+- Joints and constraints
 
 Not Supported:
-- Joints and constraints
 - ~~Determinism (Volatile uses floating-point values, and is not deterministic across hardware configurations)~~
+- Continuous collision detection
+- Broadphase spatial decomposition (previous attempts have not improved performance)
 
 Primary Design Features of Volatile:
 - **Safe Repositioning.** Bodies and individual shapes can be moved to arbitrary positions by an external process without compromising the integrity of the physics simulation. This occurs frequently when clients correct for prediction errors and must move a player controller to match the authoritative server's position. Volatile is largely stateless -- very little trajectory data is preserved between frames aside from the position, orientation, and angular/linear velocity of each body.
