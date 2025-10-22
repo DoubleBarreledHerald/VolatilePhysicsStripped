@@ -97,7 +97,6 @@ namespace Volatile
     public bool IsInWorld { get { return this.World != null; } }
 
     public VoltVector2 Position { get; private set; }
-    public VoltVector2 CenterOfMass { get; set; }
 
     public VoltVector2 Facing { get; private set; }
 
@@ -228,7 +227,7 @@ namespace Volatile
     public void AddForce(VoltVector2 force, VoltVector2 point)
     {
       this.Force += force;
-      this.Torque += VoltMath.Cross((this.Position + CenterOfMass) - point, force);
+      this.Torque += VoltMath.Cross(this.Position - point, force);
     }
 
     public void Set(VoltVector2 position, Fix64 radians)
