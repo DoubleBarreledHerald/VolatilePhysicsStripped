@@ -120,6 +120,8 @@ namespace Volatile
     /// </summary>
     public Fix64 Angle { get; private set; }
 
+    public bool IsFixedAngle { get; set; }
+
     public VoltVector2 LinearVelocity { get; set; }
     public Fix64 AngularVelocity { get; set; }
 
@@ -616,8 +618,9 @@ namespace Volatile
     {
       this.Position +=
         this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
-      this.Angle +=
-        this.World.DeltaTime * this.AngularVelocity + this.BiasRotation;
+      if (!IsFixedAngle)
+        this.Angle +=
+          this.World.DeltaTime * this.AngularVelocity + this.BiasRotation;
       this.Facing = VoltMath.Polar(this.Angle);
     }
 
