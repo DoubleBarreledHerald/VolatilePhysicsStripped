@@ -48,6 +48,7 @@ Supported Physics Tasks:
 
 Wishlist:
 - Joints and constraints
+- OnCollide action
 
 Not Supported:
 - ~~Determinism (Volatile uses floating-point values, and is not deterministic across hardware configurations)~~
