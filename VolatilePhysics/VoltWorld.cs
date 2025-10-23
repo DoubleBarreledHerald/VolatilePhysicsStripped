@@ -79,7 +79,8 @@ namespace Volatile
         }
 
         internal Fix64 Elasticity { get; private set; }
-        internal Fix64 Damping { get; private set; }
+        public Fix64 LinearDamping { get; set; }
+        public Fix64 AngularDamping { get; set; }
         public VoltVector2 Gravity { get; set; }
 
         private CheapList<VoltBody> bodies;
@@ -102,7 +103,8 @@ namespace Volatile
 
         public VoltWorld(Fix64 damping)
         {
-            this.Damping = damping;
+            this.LinearDamping = damping;
+            this.AngularDamping = damping;
 
             this.IterationCount = VoltConfig.DEFAULT_ITERATION_COUNT;
             this.DeltaTime = VoltConfig.DEFAULT_DELTA_TIME;

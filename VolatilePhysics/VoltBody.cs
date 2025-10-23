@@ -590,8 +590,8 @@ namespace Volatile
          * Mass;
 
       // Apply damping
-      this.LinearVelocity *= this.World.Damping * this.LinearDamping;
-      this.AngularVelocity *= this.World.Damping * this.AngularDamping;
+      this.LinearVelocity *= this.World.LinearDamping * this.LinearDamping;
+      this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
 
       // Calculate total force and torque
       VoltVector2 totalForce = this.Force * this.InvMass;
