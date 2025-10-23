@@ -94,6 +94,8 @@ namespace Volatile
       }
     }
 
+    public bool IsEnabled { get; set; } 
+
     public bool IsInWorld { get { return this.World != null; } }
 
     public VoltVector2 Position { get; private set; }
@@ -218,16 +220,19 @@ namespace Volatile
     #region Manipulation
     public void AddTorque(Fix64 torque)
     {
+      if (IsEnabled == false) return;
       this.Torque += torque;
     }
 
     public void AddForce(VoltVector2 force)
     {
+      if (IsEnabled == false) return;
       this.Force += force;
     }
 
     public void AddForce(VoltVector2 force, VoltVector2 point)
     {
+      if (IsEnabled == false) return;
       this.Force += force;
       this.Torque += VoltMath.Cross(this.Position - point, force);
     }
@@ -257,6 +262,7 @@ namespace Volatile
     internal bool QueryAABBOnly(
       VoltAABB worldBounds)
     {
+      if (IsEnabled == false) return false;
       return AABB.Intersect(worldBounds);
     }
 
@@ -268,6 +274,7 @@ namespace Volatile
       VoltVector2 point,
       bool bypassAABB = false)
     {
+      if (IsEnabled == false) return false;
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
         if (AABB.QueryPoint(point) == false)
@@ -290,7 +297,7 @@ namespace Volatile
       Fix64 radius,
       bool bypassAABB = false)
     {
-
+      if (IsEnabled == false) return false;
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
         if (AABB.QueryCircleApprox(origin, radius) == false)
@@ -313,6 +320,7 @@ namespace Volatile
       ref VoltRayResult result,
       bool bypassAABB = false)
     {
+      if (IsEnabled == false) return false;
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
         if (AABB.RayCast(ref ray) == false)
@@ -342,6 +350,7 @@ namespace Volatile
       ref VoltRayResult result,
       bool bypassAABB = false)
     {
+      if (IsEnabled == false) return false;
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
         if (AABB.CircleCastApprox(ref ray, radius) == false)
@@ -420,6 +429,7 @@ namespace Volatile
 
     internal void Update()
     {
+      if (IsEnabled == false) return;
       this.Integrate();
       this.OnPositionUpdated();
     }
@@ -503,6 +513,7 @@ namespace Volatile
     #region Collision
     internal bool CanCollide(VoltBody other)
     {
+      if (IsEnabled == false) return false;
       // Ignore self and static-static collisions
       if ((this == other) || (this.IsStatic && other.IsStatic))
         return false;
@@ -514,12 +525,14 @@ namespace Volatile
 
     internal void ApplyImpulse(VoltVector2 j, VoltVector2 r)
     {
+      if (IsEnabled == false) return;
       this.LinearVelocity += j * this.InvMass;
       this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
     }
 
     internal void ApplyBias(VoltVector2 j, VoltVector2 r)
     {
+      if (IsEnabled == false) return;
       this.BiasVelocity += j * this.InvMass;
       this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r);
     }
@@ -581,6 +594,7 @@ namespace Volatile
     /// </summary>
     private void Integrate()
     {
+      if (IsEnabled == false) return;
       //Apply gravity
       this.Force +=
         (
