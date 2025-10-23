@@ -94,7 +94,7 @@ namespace Volatile
       }
     }
 
-    public bool IsEnabled { get; set; } 
+    public bool IsEnabled { get; set; } = true;
 
     public bool IsInWorld { get { return this.World != null; } }
 
