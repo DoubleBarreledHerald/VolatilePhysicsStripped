@@ -89,5 +89,10 @@ namespace Volatile
         {
             return new VoltVector2(-a.x, -a.y);
         }
+
+        public override string ToString()
+        {
+            return "{X:" + x + " Y:" + y + "}";
+        }
     }
 }
