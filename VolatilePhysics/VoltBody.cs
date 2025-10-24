@@ -102,6 +102,8 @@ namespace Volatile
 
     public VoltVector2 Position { get; private set; }
 
+    public bool IsFixedPosition { get; set; }
+
     public VoltVector2 Facing { get; private set; }
 
     public VoltAABB AABB { get; private set; }
@@ -640,8 +642,10 @@ namespace Volatile
 
     private void IntegrateVelocity()
     {
-      this.Position +=
-        this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
+      //TODO
+      if (!IsFixedPosition)
+        this.Position +=
+          this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
       if (!IsFixedAngle)
         this.Angle +=
           this.World.DeltaTime * this.AngularVelocity + this.BiasRotation;

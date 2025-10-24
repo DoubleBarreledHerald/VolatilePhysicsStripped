@@ -49,11 +49,11 @@ Additions:
     - Physics body Linear and Angular Damping
 - OnCollision action for bodies and shapes
 - Trigger colliders
+- Fixed body position
 
 Wishlist:
 - Joints and constraints
 - Ignore raycasts
-- Fixed body position
 
 Not Supported:
 - ~~Determinism (Volatile uses floating-point values, and is not deterministic across hardware configurations)~~
