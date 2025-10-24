@@ -58,6 +58,8 @@ namespace Volatile
 
     public bool IsTrigger { get; set; } = false;
 
+    public bool IgnoreRaycasts { get; set; } = false;
+
     public abstract ShapeType Type { get; }
 
     /// <summary>
@@ -148,6 +150,7 @@ namespace Volatile
       ref VoltRayCast bodySpaceRay, 
       ref VoltRayResult result)
     {
+      if (IgnoreRaycasts == true) return false;
       // Queries and casts on shapes are always done in body space
       if (this.bodySpaceAABB.RayCast(ref bodySpaceRay))
         return this.ShapeRayCast(ref bodySpaceRay, ref result);

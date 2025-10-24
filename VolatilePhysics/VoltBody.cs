@@ -97,6 +97,8 @@ namespace Volatile
     public bool IsEnabled { get; set; } = true;
 
     public bool IsTrigger { get; set; } = false;
+    
+    public bool IgnoreRaycasts { get; set; } = false;
 
     public bool IsInWorld { get { return this.World != null; } }
 
@@ -333,6 +335,9 @@ namespace Volatile
       bool bypassAABB = false)
     {
       if (IsEnabled == false) return false;
+
+      if (IgnoreRaycasts == true) return false;
+      
       // AABB check done in world space (because it keeps changing)
       if (bypassAABB == false)
         if (AABB.RayCast(ref ray) == false)
