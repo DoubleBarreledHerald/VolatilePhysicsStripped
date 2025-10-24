@@ -38,17 +38,21 @@ Supported Physics Tasks:
 - Point and circle queries
 - Discrete collision detection and resolution bodies
 - Force/torque application and integration on dynamic bodies
+- **Determinism**
+
+Additions:
 - real-time variable setting for:
     - Mass
     - Inertia
     - Static/Dynamic body type
-    - Gravity strength and direction
+    - Body and World Gravity strength and direction
     - Physics body Linear and Angular Damping
-- **Determinism**
+- OnCollision action for bodies and shapes
+- Trigger colliders
 
 Wishlist:
 - Joints and constraints
-- OnCollide action
+- Ignore raycasts
 - Fixed body position
 
 Not Supported:

@@ -96,6 +96,8 @@ namespace Volatile
 
     public bool IsEnabled { get; set; } = true;
 
+    public bool IsTrigger { get; set; } = false;
+
     public bool IsInWorld { get { return this.World != null; } }
 
     public VoltVector2 Position { get; private set; }
@@ -147,6 +149,14 @@ namespace Volatile
     /// The local gravity of the body.
     /// </summary>
     public VoltVector2 Gravity { get; set; }
+
+    public delegate void CollisionEventHandler(VoltBody bodyA, VoltBody bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
+    public event CollisionEventHandler OnCollision;
+
+    internal void OnCollide(VoltBody collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
+    {
+      OnCollision?.Invoke(this, collision, position, normal, penetration);
+    }
 
     /// <summary>
     /// The collective mass of each of the shapes that make up the body.

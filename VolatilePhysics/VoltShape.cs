@@ -56,6 +56,8 @@ namespace Volatile
     internal bool IsInitialized { get; set; }
 #endif
 
+    public bool IsTrigger { get; set; } = false;
+
     public abstract ShapeType Type { get; }
 
     /// <summary>
@@ -91,6 +93,14 @@ namespace Volatile
     // Body-space bounding AABB for pre-checks during queries/casts
     internal VoltAABB worldSpaceAABB;
     internal VoltAABB bodySpaceAABB;
+
+    public delegate void CollisionEventHandler(VoltShape bodyA, VoltShape bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
+    public event CollisionEventHandler OnCollision;
+
+    internal void OnCollide(VoltShape collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
+    {
+      OnCollision?.Invoke(this, collision, position, normal, penetration);
+    }
 
     #region Body-Related
     internal void AssignBody(VoltBody body)

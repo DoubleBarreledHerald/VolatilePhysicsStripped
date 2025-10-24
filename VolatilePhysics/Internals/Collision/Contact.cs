@@ -83,6 +83,8 @@ namespace Volatile
       VoltBody bodyA = manifold.ShapeA.Body;
       VoltBody bodyB = manifold.ShapeB.Body;
 
+      if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
+
       this.toA = this.position - bodyA.Position;
       this.toB = this.position - bodyB.Position;
       this.toALeft = this.toA.Left();
@@ -102,6 +104,8 @@ namespace Volatile
 
     internal void SolveCached(Manifold manifold)
     {
+      if (manifold.ShapeA.Body.IsTrigger || manifold.ShapeB.Body.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
+
       this.ApplyContactImpulse(
         manifold.ShapeA.Body,
         manifold.ShapeB.Body,
@@ -113,6 +117,9 @@ namespace Volatile
     {
       VoltBody bodyA = manifold.ShapeA.Body;
       VoltBody bodyB = manifold.ShapeB.Body;
+
+      if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
+
       Fix64 elasticity = bodyA.World.Elasticity;
 
       // Calculate relative bias velocity
