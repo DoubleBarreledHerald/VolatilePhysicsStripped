@@ -162,6 +162,16 @@ namespace Volatile
       OnCollision?.Invoke(this, collision, position, normal, penetration);
     }
 
+    public Delegate[] GetCollisionDelegates()
+    {
+      return OnCollision.GetInvocationList();
+    }
+
+    public void ClearOnCollisionEvent()
+    {
+      OnCollision = null;
+    }
+
     /// <summary>
     /// The collective mass of each of the shapes that make up the body.
     /// If set, overrides.
