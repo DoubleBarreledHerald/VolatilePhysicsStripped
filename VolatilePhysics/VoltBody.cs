@@ -120,6 +120,7 @@ namespace Volatile
     public object UserData { get; set; }
 
     public VoltWorld World { get; private set; }
+    public int ID { get; private set; }
     public VoltBodyType BodyType { get; private set; }
     public VoltCollisionFilter CollisionFilter { private get; set; }
 
@@ -461,9 +462,10 @@ namespace Volatile
       this.OnPositionUpdated();
     }
 
-    internal void AssignWorld(VoltWorld world)
+    internal void AssignWorld(VoltWorld world, int id)
     {
       this.World = world;
+      this.ID = id;
     }
 
     internal void FreeShapes()

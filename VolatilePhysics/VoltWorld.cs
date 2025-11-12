@@ -440,7 +440,7 @@ namespace Volatile
             else
                 this.dynamicBroadphase.AddBody(body);
 
-            body.AssignWorld(this);
+            body.AssignWorld(this, bodies.Count - 1);
         }
 
         private void RemoveBodyInternal(VoltBody body)
@@ -451,7 +451,7 @@ namespace Volatile
             else
                 this.dynamicBroadphase.RemoveBody(body);
 
-            body.AssignWorld(null);
+            body.AssignWorld(null, -1);
         }
 
         /// <summary>
