@@ -118,8 +118,6 @@ namespace Volatile
     /// For attaching arbitrary data to this body.
     /// </summary>
     public object UserData { get; set; }
-    //TODO RemoveThis
-    public string Info { get; set; } = "No Info";
 
     public VoltWorld World { get; private set; }
     public int ID { get; private set; }
@@ -540,9 +538,6 @@ namespace Volatile
       if (IsEnabled == false) return;
       this.LinearVelocity += j * this.InvMass;
       this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
-
-      string info = "Impulse of: " + j + "|" + r + " Inverse mass of: " + this.InvMass + " Inverse inertia of: " + this.InvInertia + " New Velocity: " + LinearVelocity + "|" + AngularVelocity;
-      Info = info;
     }
 
     internal void ApplyBias(VoltVector2 j, VoltVector2 r)
