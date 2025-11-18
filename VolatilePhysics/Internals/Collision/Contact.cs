@@ -83,8 +83,12 @@ namespace Volatile
       VoltBody bodyA = manifold.ShapeA.Body;
       VoltBody bodyB = manifold.ShapeB.Body;
 
-      if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
-
+      if (bodyA.IsTrigger == true
+       || bodyB.IsTrigger == true
+       || manifold.ShapeA.IsTrigger == true
+       || manifold.ShapeB.IsTrigger == true)
+        return;
+      
       this.toA = this.position - bodyA.Position;
       this.toB = this.position - bodyB.Position;
       this.toALeft = this.toA.Left();
@@ -104,7 +108,11 @@ namespace Volatile
 
     internal void SolveCached(Manifold manifold)
     {
-      if (manifold.ShapeA.Body.IsTrigger || manifold.ShapeB.Body.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
+      if (manifold.ShapeA.Body.IsTrigger == true
+       || manifold.ShapeB.Body.IsTrigger == true
+       || manifold.ShapeA.IsTrigger == true
+       || manifold.ShapeB.IsTrigger == true)
+        return;
 
       this.ApplyContactImpulse(
         manifold.ShapeA.Body,
@@ -118,7 +126,11 @@ namespace Volatile
       VoltBody bodyA = manifold.ShapeA.Body;
       VoltBody bodyB = manifold.ShapeB.Body;
 
-      if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
+      if (bodyA.IsTrigger == true
+       || bodyB.IsTrigger == true
+       || manifold.ShapeA.IsTrigger == true
+       || manifold.ShapeB.IsTrigger == true)
+        return;
 
       Fix64 elasticity = bodyA.World.Elasticity;
 
