@@ -53,6 +53,7 @@ namespace Volatile
       VoltDebug.Assert(index >= 0);
       VoltDebug.Assert(index < this.count);
 
+      //Moves the last body in the bodies array to the slot of the removed body.
       int lastIndex = this.count - 1;
       if (index < lastIndex)
       {
@@ -65,6 +66,7 @@ namespace Volatile
         lastBody.ProxyId = index;
       }
 
+      //Ignores the last body in the bodies array.
       this.count--;
     }
 
