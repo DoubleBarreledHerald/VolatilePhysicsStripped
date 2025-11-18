@@ -118,6 +118,8 @@ namespace Volatile
     /// For attaching arbitrary data to this body.
     /// </summary>
     public object UserData { get; set; }
+    //TODO RemoveThis
+    public string Info { get; set; } = "No Info";
 
     public VoltWorld World { get; private set; }
     public int ID { get; private set; }
@@ -189,7 +191,12 @@ namespace Volatile
       set
       {
         if (_mass == value) return;
-        _mass = value;
+        if (value == Fix64.Zero)
+        {
+          _mass = null;
+        } else {
+          _mass = value;
+        }
         //recalculate
         if (BodyType == VoltBodyType.Dynamic) ComputeDynamics();
       }
@@ -202,30 +209,7 @@ namespace Volatile
     /// The collective mass of each shape that makes up the body.
     /// </summary>
     private Fix64 collMass { get; set; }
-    public Fix64 Inertia
-    {
-      get
-      {
-        if (_inertia != null)
-          return _inertia.GetValueOrDefault();
-        return collInertia;
-      }
-      set
-      {
-        if (_inertia == value) return;
-        _inertia = value;
-        //recalculate
-        if (BodyType == VoltBodyType.Dynamic) ComputeDynamics();
-      }
-    }
-    /// <summary>
-    /// Overrides the Inertia value;
-    /// </summary>
-    private Fix64? _inertia { get; set; } = null;
-    /// <summary>
-    /// The collective inertia of each shape that makes up the body.
-    /// </summary>
-    private Fix64 collInertia { get; set; }
+    public Fix64 Inertia { get; set; }
     public Fix64 InvMass { get; private set; }
     public Fix64 InvInertia { get; private set; }
 
@@ -526,8 +510,7 @@ namespace Volatile
 
       this._mass = null;
       this.collMass = Fix64.Zero;
-      this._inertia = null;
-      this.collInertia = Fix64.Zero;
+      this.Inertia = Fix64.Zero;
       this.InvMass = Fix64.Zero;
       this.InvInertia = Fix64.Zero;
 
@@ -557,6 +540,9 @@ namespace Volatile
       if (IsEnabled == false) return;
       this.LinearVelocity += j * this.InvMass;
       this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
+
+      string info = "Impulse of: " + j + "|" + r + " Inverse mass of: " + this.InvMass + " Inverse inertia of: " + this.InvInertia + " New Velocity: " + LinearVelocity + "|" + AngularVelocity;
+      Info = info;
     }
 
     internal void ApplyBias(VoltVector2 j, VoltVector2 r)
@@ -680,7 +666,7 @@ namespace Volatile
     private void ComputeDynamics()
     {
       this.collMass = Fix64.Zero;
-      this.collInertia = Fix64.Zero;
+      this.Inertia = Fix64.Zero;
 
       for (int i = 0; i < this.shapeCount; i++)
       {
@@ -690,13 +676,14 @@ namespace Volatile
         Fix64 curMass = shape.Mass;
         if (this._mass != null)
         {
+          //Divide the body's override mass to each shape based on their area.
           curMass = _mass.GetValueOrDefault() * (shape.Area / this.Area);
         }
 
         Fix64 curInertia = shape.Inertia;
 
         this.collMass += curMass;
-        this.collInertia += curMass * curInertia;
+        this.Inertia += curMass * curInertia;
       }
 
       if (this.collMass < VoltConfig.MINIMUM_DYNAMIC_MASS)
