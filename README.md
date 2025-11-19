@@ -54,6 +54,12 @@ Stripped Additions:
 Wishlist:
 - Joints and constraints
 - Fixed body position
+- Dynamic Body Order
+
+TODO:
+- Dynamic Body Order
+    - Arbitrary Body ID
+    - NaiveBroadphase Body Sorting
 
 Not Supported:
 - ~~Determinism (Volatile uses floating-point values, and is not deterministic across hardware configurations)~~
