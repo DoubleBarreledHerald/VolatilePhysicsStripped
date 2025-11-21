@@ -79,3 +79,15 @@ Caveats:
 ---
 
 By default, Volatile builds against the official UnityEngine.dll and uses Unity data structures (like Vector2). Volatile includes a separate "FakeUnity" project that emulates Unity's functionality to the extent Volatile needs. You can add this project as a reference and remove the UnityEngine.dll reference to build Volatile as a standalone library. It is safe to delete FakeUnity if you are not interested in using Volatile outside of Unity.
+
+Issue:
+--- Update Order
+NativeBroadphase's add and remove functions results in a volatile update order.
+Removing a body moves the last body in the order into the slot of the removed body.
+This would not be a problem if the update order did not have any bearing on the outcome of collisions.
+But, the collision impulse is calculated using the relative velocity of the colliding bodies. Which is changed by previous collisions in the update cycle.
+
+--- Solutions:
+NativeBroadphase's add and remove functions can be made consistent.
+NativeBroadphase's update order can be set by an order function.
+Collisions can be reworked so that the results of collisions are not applied until the end of the update cycle.
