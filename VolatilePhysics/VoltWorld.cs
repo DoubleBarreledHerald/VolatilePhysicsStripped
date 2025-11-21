@@ -432,6 +432,7 @@ namespace Volatile
         }
 
         #region Internals
+        private int totalCount = 0;
         private void AddBodyInternal(VoltBody body)
         {
             this.bodies.Add(body);
@@ -440,7 +441,8 @@ namespace Volatile
             else
                 this.dynamicBroadphase.AddBody(body);
 
-            body.AssignWorld(this, bodies.Count - 1);
+            body.AssignWorld(this, totalCount);
+            totalCount++;
         }
 
         private void RemoveBodyInternal(VoltBody body)
