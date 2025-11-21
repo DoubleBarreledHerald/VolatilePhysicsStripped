@@ -120,6 +120,15 @@ namespace Volatile
     public object UserData { get; set; }
 
     public VoltWorld World { get; private set; }
+    public void SetID(int DesiredProxyID, int ID)
+    {
+      this.DesiredProxyID = DesiredProxyID;
+      this.ID = ID;
+      World.TotalBodyCount = Math.Max(World.TotalBodyCount, ID);
+
+      if (DesiredProxyID != ProxyId)
+        World.RequireDynamicSort = true;
+    }
     public int ID { get; private set; }
     public VoltBodyType BodyType { get; private set; }
     public VoltCollisionFilter CollisionFilter { private get; set; }
@@ -215,6 +224,7 @@ namespace Volatile
     public Fix64 BiasRotation { get; private set; }
 
     // Used for broadphase structures
+    internal int DesiredProxyID { get; set; }
     public int ProxyId { get; internal set; }
 
     public VoltShape[] shapes { get; private set; }

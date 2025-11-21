@@ -78,6 +78,8 @@ namespace Volatile
             }
         }
 
+        public int TotalBodyCount {get; set;} = 0;
+        
         internal Fix64 Elasticity { get; private set; }
         public Fix64 LinearDamping { get; set; }
         public Fix64 AngularDamping { get; set; }
@@ -86,7 +88,7 @@ namespace Volatile
         private CheapList<VoltBody> bodies;
         private List<Manifold> manifolds;
 
-        private IBroadPhase dynamicBroadphase;
+        private NaiveBroadphase dynamicBroadphase;
         private IBroadPhase staticBroadphase;
 
         private VoltBuffer<VoltBody> reusableBuffer;
@@ -101,8 +103,10 @@ namespace Volatile
         private IVoltPool<Contact> contactPool;
         private IVoltPool<Manifold> manifoldPool;
 
-        public VoltWorld(Fix64 damping)
+        public VoltWorld(Fix64 damping, int TotalBodyCount = 0)
         {
+            this.TotalBodyCount = TotalBodyCount;
+
             this.LinearDamping = damping;
             this.AngularDamping = damping;
 
@@ -128,7 +132,6 @@ namespace Volatile
 
         public VoltWorld() : this(VoltConfig.DEFAULT_DAMPING)
         {
-
         }
 
         /// <summary>
@@ -280,6 +283,8 @@ namespace Volatile
             this.FreeBody(body);
         }
 
+        public bool RequireDynamicSort = false;
+
         /// <summary>
         /// Ticks the world, updating all dynamic bodies and resolving collisions.
         /// If a frame number is provided, all dynamic bodies will store their
@@ -297,6 +302,14 @@ namespace Volatile
                 }
             }
 
+            //Check dynamic order
+            if (RequireDynamicSort)
+            {
+                RequireDynamicSort = false;
+                dynamicBroadphase.SortBodies();
+            }
+
+            //Start checking collisions
             this.BroadPhase();
 
             this.UpdateCollision();
@@ -432,7 +445,6 @@ namespace Volatile
         }
 
         #region Internals
-        private int totalCount = 0;
         private void AddBodyInternal(VoltBody body)
         {
             this.bodies.Add(body);
@@ -441,8 +453,8 @@ namespace Volatile
             else
                 this.dynamicBroadphase.AddBody(body);
 
-            body.AssignWorld(this, totalCount);
-            totalCount++;
+            body.AssignWorld(this, TotalBodyCount);
+            TotalBodyCount++;
         }
 
         private void RemoveBodyInternal(VoltBody body)

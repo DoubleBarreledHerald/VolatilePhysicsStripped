@@ -22,6 +22,8 @@
 using UnityEngine;
 #endif
 
+using System.Collections.Generic;
+using System.Linq;
 using FixMath.NET;
 
 namespace Volatile
@@ -68,6 +70,26 @@ namespace Volatile
 
       //Ignores the last body in the bodies array.
       this.count--;
+    }
+
+    public void SortBodies()
+    {
+      //Get all active bodies
+      VoltBody[] voltBodies = new VoltBody[count];
+      for (int i = 0; i < count; i++)
+      {
+        voltBodies[i] = bodies[i];
+      }
+
+      //Sort by their desired placement.
+      voltBodies = voltBodies.OrderBy(x => x.DesiredProxyID).ToArray();
+
+      //Set placement in bodies.
+      for (int i = 0; i < count; i++)
+      {
+        voltBodies[i].ProxyId = i;
+        bodies[i] = voltBodies[i];
+      }
     }
 
     public void UpdateBody(VoltBody body)
