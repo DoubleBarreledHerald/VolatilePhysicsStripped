@@ -91,3 +91,22 @@ But, the collision impulse is calculated using the relative velocity of the coll
 NativeBroadphase's add and remove functions can be made consistent.
 NativeBroadphase's update order can be set by an order function.
 Collisions can be reworked so that the results of collisions are not applied until the end of the update cycle.
+
+Issue:
+--- Reused IDs
+VoltBody's ID is set as the total body count at the time of the body's creation.
+
+0 1 2 3 4 5
+If body 3 of 6 is destroyed
+0 1 3 4 5
+and a new body is created
+0 1 3 4 5 6
+it will have an ID of 6, identical to the body 5.
+
+This means that the ID is not unique to the body.
+
+--- Solutions:
+Keep the total count of created bodies as an interger, with each new body created the ID is set to that total count.
+-Would limit the total amount of available bodies to int.MaxValue.
+    -2 billion bodies sounds like more than enough....
+    -Could even switch to uint for 4 billion.
