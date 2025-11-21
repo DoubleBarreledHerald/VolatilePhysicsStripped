@@ -215,7 +215,7 @@ namespace Volatile
     public Fix64 BiasRotation { get; private set; }
 
     // Used for broadphase structures
-    internal int ProxyId { get; set; }
+    public int ProxyId { get; internal set; }
 
     public VoltShape[] shapes { get; private set; }
     internal int shapeCount;
