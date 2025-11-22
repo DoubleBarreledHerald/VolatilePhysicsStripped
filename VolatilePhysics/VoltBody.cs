@@ -79,8 +79,6 @@ namespace Volatile
       {
         if (this.BodyType == VoltBodyType.Invalid)
           throw new InvalidOperationException();
-        //already set
-        if ((this.BodyType == VoltBodyType.Static) == value) return;
         if (value)
         {
           //static
@@ -120,14 +118,11 @@ namespace Volatile
     public object UserData { get; set; }
 
     public VoltWorld World { get; private set; }
-    public void SetID(int DesiredProxyID, int ID)
+    public void SetID(int ID)
     {
-      this.DesiredProxyID = DesiredProxyID;
       this.ID = ID;
       World.TotalBodyCount = Math.Max(World.TotalBodyCount, ID);
-
-      if (DesiredProxyID != ProxyId)
-        World.RequireDynamicSort = true;
+      World.RequireDynamicSort = true;
     }
     public int ID { get; private set; }
     public VoltBodyType BodyType { get; private set; }
@@ -190,14 +185,17 @@ namespace Volatile
     {
       get
       {
+        if (BodyType == VoltBodyType.Static) return Fix64.Zero;
+        //mass is overridden.
         if (_mass != null)
           return _mass.GetValueOrDefault();
-        //
+        //mass is calculated.
         return collMass;
       }
       set
       {
-        if (_mass == value) return;
+        if (BodyType == VoltBodyType.Static) return;
+
         if (value == Fix64.Zero)
         {
           _mass = null;
@@ -205,7 +203,7 @@ namespace Volatile
           _mass = value;
         }
         //recalculate
-        if (BodyType == VoltBodyType.Dynamic) ComputeDynamics();
+        ComputeDynamics();
       }
     }
     /// <summary>
@@ -224,7 +222,6 @@ namespace Volatile
     public Fix64 BiasRotation { get; private set; }
 
     // Used for broadphase structures
-    internal int DesiredProxyID { get; set; }
     public int ProxyId { get; internal set; }
 
     public VoltShape[] shapes { get; private set; }
@@ -676,13 +673,16 @@ namespace Volatile
       for (int i = 0; i < this.shapeCount; i++)
       {
         VoltShape shape = this.shapes[i];
-        if (shape.Density == Fix64.Zero)
-          continue;
-        Fix64 curMass = shape.Mass;
+        Fix64 curMass;
+        //Mass override
         if (this._mass != null)
         {
           //Divide the body's override mass to each shape based on their area.
           curMass = _mass.GetValueOrDefault() * (shape.Area / this.Area);
+        } else {
+          if (shape.Density == Fix64.Zero)
+            continue;
+          curMass = shape.Mass;
         }
 
         Fix64 curInertia = shape.Inertia;
@@ -695,11 +695,9 @@ namespace Volatile
       {
         throw new InvalidOperationException("Mass of dynamic too small");
       }
-      else
-      {
-        this.InvMass = Fix64.One / this.Mass;
-        this.InvInertia = Fix64.One / this.Inertia;
-      }
+
+      this.InvMass = Fix64.One / this.Mass;
+      this.InvInertia = Fix64.One / this.Inertia;
 
       this.BodyType = VoltBodyType.Dynamic;
     }
@@ -707,7 +705,7 @@ namespace Volatile
     private void SetStatic()
     {
       this.collMass = Fix64.Zero;
-      this._mass = Fix64.Zero;
+      //this._mass = Fix64.Zero;
       this.Inertia = Fix64.Zero;
       this.InvMass = Fix64.Zero;
       this.InvInertia = Fix64.Zero;

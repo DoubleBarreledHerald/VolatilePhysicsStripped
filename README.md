@@ -92,6 +92,11 @@ NativeBroadphase's add and remove functions can be made consistent.
 NativeBroadphase's update order can be set by an order function.
 Collisions can be reworked so that the results of collisions are not applied until the end of the update cycle.
 
+NativeBroadphase's SortBodies seems to correctly order the dynamic bodies, however their update order is still wrong.
+Issue with VoltWorld's reusableBuffer?
+Issue with VoltWorld's body cheaplist CORRECT
+Commit to cheaplist order. Probably switch to sorting by voltbody's ID.
+
 Issue:
 --- Reused IDs
 VoltBody's ID is set as the total body count at the time of the body's creation.

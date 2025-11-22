@@ -72,26 +72,6 @@ namespace Volatile
       this.count--;
     }
 
-    public void SortBodies()
-    {
-      //Get all active bodies
-      VoltBody[] voltBodies = new VoltBody[count];
-      for (int i = 0; i < count; i++)
-      {
-        voltBodies[i] = bodies[i];
-      }
-
-      //Sort by their desired placement.
-      voltBodies = voltBodies.OrderBy(x => x.DesiredProxyID).ToArray();
-
-      //Set placement in bodies.
-      for (int i = 0; i < count; i++)
-      {
-        voltBodies[i].ProxyId = i;
-        bodies[i] = voltBodies[i];
-      }
-    }
-
     public void UpdateBody(VoltBody body)
     {
       // Do nothing

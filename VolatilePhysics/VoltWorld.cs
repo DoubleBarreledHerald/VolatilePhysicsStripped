@@ -21,6 +21,7 @@
 using FixMath.NET;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 #if UNITY
 using UnityEngine;
@@ -88,7 +89,7 @@ namespace Volatile
         private CheapList<VoltBody> bodies;
         private List<Manifold> manifolds;
 
-        private NaiveBroadphase dynamicBroadphase;
+        private IBroadPhase dynamicBroadphase;
         private IBroadPhase staticBroadphase;
 
         private VoltBuffer<VoltBody> reusableBuffer;
@@ -292,6 +293,31 @@ namespace Volatile
         /// </summary>
         public void Update()
         {
+            //Check dynamic order
+            if (RequireDynamicSort)
+            {
+                RequireDynamicSort = false;
+                
+                //Sort bodies.
+                int count = bodies.Count;
+                bodies.Clear();
+
+                VoltBody[] voltBodies = new VoltBody[count];
+                for (int i = 0; i < count; i++)
+                {
+                    voltBodies[i] = bodies[i];
+                }
+
+                //Sort by their desired placement.
+                voltBodies = voltBodies.OrderBy(x => x.ID).ToArray();
+
+                //Set placement in bodies.
+                for (int i = 0; i < count; i++)
+                {
+                    bodies.Add(voltBodies[i]);
+                }
+            }
+
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
@@ -300,13 +326,6 @@ namespace Volatile
                     body.Update();
                     this.dynamicBroadphase.UpdateBody(body);
                 }
-            }
-
-            //Check dynamic order
-            if (RequireDynamicSort)
-            {
-                RequireDynamicSort = false;
-                dynamicBroadphase.SortBodies();
             }
 
             //Start checking collisions
@@ -476,14 +495,17 @@ namespace Volatile
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody query = this.bodies[i];
+                //Ignore static bodies
                 if (query.IsStatic)
                     continue;
 
                 this.reusableBuffer.Clear();
+                //Get the AABB collisions for each body, static and dynamic
                 this.staticBroadphase.QueryOverlap(query.AABB, this.reusableBuffer);
 
                 // HACK: Don't use dynamic broadphase for global updates for this.
                 // It's faster if we do it manually because we can triangularize.
+                //Get every body after query, add if body is not static.
                 for (int j = i + 1; j < this.bodies.Count; j++)
                     if (this.bodies[j].IsStatic == false)
                         this.reusableBuffer.Add(this.bodies[j]);
