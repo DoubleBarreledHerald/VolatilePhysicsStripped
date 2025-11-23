@@ -432,6 +432,7 @@ namespace Volatile
         this.shapes = new VoltShape[shapesToAdd.Length];
       Array.Copy(shapesToAdd, this.shapes, shapesToAdd.Length);
       this.shapeCount = shapesToAdd.Length;
+      this.Area = Fix64.Zero;
       for (int i = 0; i < this.shapeCount; i++)
       {
         VoltShape shape = this.shapes[i];
