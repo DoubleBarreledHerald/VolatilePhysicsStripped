@@ -278,6 +278,11 @@ namespace Volatile
         {
             VoltDebug.Assert(body.World == this);
 
+            if (body.ID == TotalBodyCount - 1)
+            {
+                TotalBodyCount--;
+            }
+
             body.FreeShapes();
 
             this.RemoveBodyInternal(body);
@@ -316,6 +321,7 @@ namespace Volatile
                 {
                     bodies.Add(voltBodies[i]);
                 }
+                TotalBodyCount = bodies.Last().ID;
             }
 
             for (int i = 0; i < this.bodies.Count; i++)
