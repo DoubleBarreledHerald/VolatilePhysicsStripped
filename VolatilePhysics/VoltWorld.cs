@@ -78,8 +78,6 @@ namespace Volatile
                     yield return this.bodies[i];
             }
         }
-
-        public int TotalBodyCount {get; set;} = 0;
         
         internal Fix64 Elasticity { get; private set; }
         public Fix64 LinearDamping { get; set; }
@@ -104,10 +102,8 @@ namespace Volatile
         private IVoltPool<Contact> contactPool;
         private IVoltPool<Manifold> manifoldPool;
 
-        public VoltWorld(Fix64 damping, int TotalBodyCount = 0)
+        public VoltWorld(Fix64 damping)
         {
-            this.TotalBodyCount = TotalBodyCount;
-
             this.LinearDamping = damping;
             this.AngularDamping = damping;
 
@@ -278,10 +274,10 @@ namespace Volatile
         {
             VoltDebug.Assert(body.World == this);
 
-            if (body.ID == TotalBodyCount - 1)
+/*             if (body.ID == TotalBodyCount - 1)
             {
                 TotalBodyCount--;
-            }
+            } */
 
             body.FreeShapes();
 
@@ -302,26 +298,7 @@ namespace Volatile
             if (RequireDynamicSort)
             {
                 RequireDynamicSort = false;
-                
-                //Sort bodies.
-                int count = bodies.Count;
-                bodies.Clear();
-
-                VoltBody[] voltBodies = new VoltBody[count];
-                for (int i = 0; i < count; i++)
-                {
-                    voltBodies[i] = bodies[i];
-                }
-
-                //Sort by their desired placement.
-                voltBodies = voltBodies.OrderBy(x => x.ID).ToArray();
-
-                //Set placement in bodies.
-                for (int i = 0; i < count; i++)
-                {
-                    bodies.Add(voltBodies[i]);
-                }
-                TotalBodyCount = bodies.Last().ID;
+                ResortBodies();
             }
 
             for (int i = 0; i < this.bodies.Count; i++)
@@ -339,6 +316,45 @@ namespace Volatile
 
             this.UpdateCollision();
             this.FreeManifolds();
+        }
+
+        public void ResortBodies()
+        {
+            //Sort bodies.
+            int count = bodies.Count;
+            bodies.Clear();
+
+            VoltBody[] voltBodies = new VoltBody[count];
+            for (int i = 0; i < count; i++)
+            {
+                voltBodies[i] = bodies[i];
+            }
+
+            //Sort by their desired placement.
+            voltBodies = voltBodies.OrderBy(x => x.ID).ToArray();
+
+            //Set placement in bodies.
+            for (int i = 0; i < count; i++)
+            {
+                bodies.Add(voltBodies[i]);
+            }
+
+            List<VoltBody> testBodies = bodies.ToList();
+            bool bugged = false;
+            for (int i = 0; i < count; i++)
+            {
+                var bod = bodies[i];
+                int duplic = testBodies.FindAll(x => x.ID == bod.ID).Count;
+                if (duplic > 1)
+                {
+                    Console.WriteLine("There are: " + duplic + " bodies with the id: " + bod.ID);
+                    bugged = true;
+                }
+            }
+            if (bugged)
+            {
+                //throw new Exception();
+            }
         }
 
         /// <summary>
@@ -472,14 +488,14 @@ namespace Volatile
         #region Internals
         private void AddBodyInternal(VoltBody body)
         {
+            int setID = bodies.Count <= 0 ? 0 : bodies.Last().ID + 1;
             this.bodies.Add(body);
             if (body.IsStatic)
                 this.staticBroadphase.AddBody(body);
             else
                 this.dynamicBroadphase.AddBody(body);
 
-            body.AssignWorld(this, TotalBodyCount);
-            TotalBodyCount++;
+            body.AssignWorld(this, setID);
         }
 
         private void RemoveBodyInternal(VoltBody body)

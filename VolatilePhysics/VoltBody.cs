@@ -121,7 +121,6 @@ namespace Volatile
     public void SetID(int ID)
     {
       this.ID = ID;
-      World.TotalBodyCount = Math.Max(World.TotalBodyCount, ID);
       World.RequireDynamicSort = true;
     }
     public int ID { get; private set; }
