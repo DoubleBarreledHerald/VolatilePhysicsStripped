@@ -338,23 +338,6 @@ namespace Volatile
             {
                 bodies.Add(voltBodies[i]);
             }
-
-            List<VoltBody> testBodies = bodies.ToList();
-            bool bugged = false;
-            for (int i = 0; i < count; i++)
-            {
-                var bod = bodies[i];
-                int duplic = testBodies.FindAll(x => x.ID == bod.ID).Count;
-                if (duplic > 1)
-                {
-                    Console.WriteLine("There are: " + duplic + " bodies with the id: " + bod.ID);
-                    bugged = true;
-                }
-            }
-            if (bugged)
-            {
-                //throw new Exception();
-            }
         }
 
         /// <summary>
