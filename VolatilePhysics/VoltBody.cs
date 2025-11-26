@@ -69,13 +69,14 @@ namespace Volatile
     /// </summary>
     public bool IsStatic
     {
-      get
-      {
+      get {
         if (this.BodyType == VoltBodyType.Invalid)
           throw new InvalidOperationException();
         return this.BodyType == VoltBodyType.Static;
       }
-      set
+      
+      //Leaves the body in the incorrect Broadphase
+      /* set
       {
         if (this.BodyType == VoltBodyType.Invalid)
           throw new InvalidOperationException();
@@ -89,7 +90,7 @@ namespace Volatile
           //dynamic
           ComputeDynamics();
         }
-      }
+      } */
     }
 
     public bool IsEnabled { get; set; } = true;
