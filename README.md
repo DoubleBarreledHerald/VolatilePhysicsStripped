@@ -44,7 +44,6 @@ Stripped Additions:
 - real-time variable setting for:
     - Mass
     - Inertia
-    - Static/Dynamic body type
     - Body and World Gravity strength and direction
     - Physics body Linear and Angular Damping
 - OnCollision action for bodies and shapes
@@ -55,6 +54,7 @@ Stripped Additions:
 Wishlist:
 - Joints and constraints
 - Fixed body position
+- Static/Dynamic body type variable setting
 
 Not Supported:
 - ~~Determinism (Volatile uses floating-point values, and is not deterministic across hardware configurations)~~
