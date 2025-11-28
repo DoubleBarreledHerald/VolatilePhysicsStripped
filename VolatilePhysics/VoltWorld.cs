@@ -308,6 +308,9 @@ namespace Volatile
                 {
                     body.Update();
                     this.dynamicBroadphase.UpdateBody(body);
+                } else
+                {
+                    this.staticBroadphase.UpdateBody(body);
                 }
             }
 
