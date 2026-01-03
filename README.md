@@ -50,6 +50,7 @@ Stripped Additions:
 - Trigger colliders
 - Body and shape IgnoreRaycasts
 - Sorted Body Order
+- Raycast Movement
 
 Wishlist:
 - Joints and constraints
