@@ -96,6 +96,8 @@ namespace Volatile
     public bool IsEnabled { get; set; } = true;
 
     public bool IsTrigger { get; set; } = false;
+
+    public bool RaycastMove { get; set; } = false;
     
     public bool IgnoreRaycasts { get; set; } = false;
 
@@ -648,14 +650,35 @@ namespace Volatile
 
     private void IntegrateVelocity()
     {
+      VoltVector2 targetPosition = this.Position + this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
+
+      if (RaycastMove)
+      {
+        IntegrateRaycastMove(ref targetPosition);
+      }
+
+
       //TODO
       //if (!IsFixedPosition)
-        this.Position +=
-          this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
+        this.Position = targetPosition;
       if (!IsFixedAngle)
         this.Angle +=
           this.World.DeltaTime * this.AngularVelocity + this.BiasRotation;
       this.Facing = VoltMath.Polar(this.Angle);
+    }
+
+    private void IntegrateRaycastMove(ref VoltVector2 targetPosition)
+    {
+      //Raycast from current position to target position
+      var ray = new VoltRayCast(Position, targetPosition);
+      var result = new VoltRayResult();
+
+      //on collide
+      if (World.RayCast(ref ray, ref result, CanCollide))
+      {
+        //move to collision point
+        targetPosition = result.ComputePoint(ref ray);
+      }
     }
 
     private void ClearForces()
