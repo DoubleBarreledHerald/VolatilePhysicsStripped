@@ -154,6 +154,16 @@ namespace Volatile
         {
             return (int)Fix64.Round(fix64);
         }
+
+        public static Fix64 Lerp(Fix64 value1, Fix64 value2, Fix64 amount)
+        {
+            return value1 + (value2 - value1) * amount;
+        }
+
+        public static Fix64 LerpPrecise(Fix64 value1, Fix64 value2, Fix64 amount)
+        {
+            return (Fix64.One - amount) * value1 + value2 * amount;
+        }
         #endregion
     }
 }
