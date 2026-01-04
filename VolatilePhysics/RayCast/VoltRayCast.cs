@@ -49,8 +49,14 @@ namespace Volatile
       this.distance = delta.magnitude;
       this.signX = direction.x < Fix64.Zero;
       this.signY = direction.y < Fix64.Zero;
-      this.invDirection = 
-        new VoltVector2(Fix64.One / direction.x, Fix64.One / direction.y);
+      
+      Fix64 invX = Fix64.MaxValue;
+      if (direction.x != Fix64.Zero)
+        invX = Fix64.One / direction.x;
+      Fix64 invY = Fix64.MaxValue;
+      if (direction.y != Fix64.Zero)
+        invX = Fix64.One / direction.y;
+      this.invDirection = new VoltVector2(invX, invY);
     }
 
     public VoltRayCast(VoltVector2 origin, VoltVector2 direction, Fix64 distance)
@@ -60,8 +66,14 @@ namespace Volatile
       this.distance = distance;
       this.signX = direction.x < Fix64.Zero;
       this.signY = direction.y < Fix64.Zero;
-      this.invDirection = 
-        new VoltVector2(Fix64.One / direction.x, Fix64.One / direction.y);
+
+      Fix64 invX = Fix64.MaxValue;
+      if (direction.x != Fix64.Zero)
+        invX = Fix64.One / direction.x;
+      Fix64 invY = Fix64.MaxValue;
+      if (direction.y != Fix64.Zero)
+        invX = Fix64.One / direction.y;
+      this.invDirection = new VoltVector2(invX, invY);
     }
   }
 }
