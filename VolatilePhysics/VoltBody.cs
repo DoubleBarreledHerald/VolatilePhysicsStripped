@@ -657,7 +657,6 @@ namespace Volatile
         IntegrateRaycastMove(ref targetPosition);
       }
 
-
       //TODO
       //if (!IsFixedPosition)
         this.Position = targetPosition;
@@ -669,6 +668,8 @@ namespace Volatile
 
     private void IntegrateRaycastMove(ref VoltVector2 targetPosition)
     {
+      if (World.QueryPoint(Position, CanCollide).Count > 0) return;
+
       //Raycast from current position to target position
       var ray = new VoltRayCast(Position, targetPosition);
       var result = new VoltRayResult();
