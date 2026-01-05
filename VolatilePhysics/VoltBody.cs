@@ -668,6 +668,8 @@ namespace Volatile
 
     private void IntegrateRaycastMove(ref VoltVector2 targetPosition)
     {
+      if ((Position - targetPosition).Length() == Fix64.Zero) return;
+
       if (World.QueryPoint(Position, CanCollide).Count > 0) return;
 
       //Raycast from current position to target position

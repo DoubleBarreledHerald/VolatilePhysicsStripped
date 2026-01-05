@@ -117,7 +117,10 @@ namespace Volatile
 
         public static bool operator ==(VoltVector2 a, VoltVector2 b)
         {
-            return a.x == b.x && a.y == b.y;
+            if (a.x != b.x)
+                return false;
+
+            return a.y == b.y;
         }
 
         public static bool operator !=(VoltVector2 a, VoltVector2 b)
