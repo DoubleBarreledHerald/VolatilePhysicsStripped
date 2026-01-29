@@ -101,6 +101,8 @@ namespace Volatile
     
     public bool IgnoreRaycasts { get; set; } = false;
 
+    public bool IgnoreTriggers { get; set; } = false;
+
     public bool IsInWorld { get { return this.World != null; } }
 
     public VoltVector2 Position { get; private set; }
@@ -536,6 +538,9 @@ namespace Volatile
       if (IsEnabled == false) return false;
       // Ignore self and static-static collisions
       if ((this == other) || (this.IsStatic && other.IsStatic))
+        return false;
+
+      if (IgnoreTriggers && other.IsTrigger)
         return false;
 
       if (this.CollisionFilter != null)

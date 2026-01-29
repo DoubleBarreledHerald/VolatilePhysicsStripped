@@ -49,6 +49,7 @@ Stripped Additions:
 - OnCollision action for bodies and shapes
 - Trigger colliders
 - Body and shape IgnoreRaycasts
+- Body IgnoreTriggers
 - Sorted Body Order
 - Raycast Movement
 
