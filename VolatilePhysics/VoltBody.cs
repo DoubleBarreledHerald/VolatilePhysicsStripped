@@ -107,8 +107,6 @@ namespace Volatile
 
     public VoltVector2 Position { get; private set; }
 
-    public bool IsFixedPosition { get; set; } = false;
-
     public VoltVector2 Facing { get; private set; }
 
     public VoltAABB AABB { get; private set; }
@@ -138,6 +136,10 @@ namespace Volatile
     public Fix64 Angle { get; private set; }
 
     public bool IsFixedAngle { get; set; } = false;
+
+    public bool IsFixedPosition { get; set; } = false;
+
+    public bool IsFixed { get { return IsFixedAngle && IsFixedPosition; } }
 
     public VoltVector2 LinearVelocity { get; set; }
     public Fix64 AngularVelocity { get; set; }
@@ -537,11 +539,8 @@ namespace Volatile
     internal bool CanCollide(VoltBody other)
     {
       if (IsEnabled == false) return false;
-      // Ignore self and static-static collisions
-      if ((this == other) || (this.IsStatic && other.IsStatic) ||
-      // Ignore fixed-fixed collisions
-        (this.IsFixedAngle && other.IsFixedAngle &&
-        this.IsFixedPosition && other.IsFixedPosition))
+      // Ignore self and static-static/fixed-fixed collisions
+      if ((this == other) || ((this.IsStatic || this.IsFixed) && (other.IsStatic || other.IsFixed)))
         return false;
 
       if (IgnoreTriggers && other.IsTrigger)
