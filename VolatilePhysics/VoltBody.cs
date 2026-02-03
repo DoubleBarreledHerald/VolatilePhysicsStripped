@@ -107,7 +107,7 @@ namespace Volatile
 
     public VoltVector2 Position { get; private set; }
 
-    //public bool IsFixedPosition { get; set; }
+    public bool IsFixedPosition { get; set; } = false;
 
     public VoltVector2 Facing { get; private set; }
 
@@ -137,7 +137,7 @@ namespace Volatile
     /// </summary>
     public Fix64 Angle { get; private set; }
 
-    public bool IsFixedAngle { get; set; }
+    public bool IsFixedAngle { get; set; } = false;
 
     public VoltVector2 LinearVelocity { get; set; }
     public Fix64 AngularVelocity { get; set; }
@@ -190,6 +190,7 @@ namespace Volatile
       get
       {
         if (BodyType == VoltBodyType.Static) return Fix64.Zero;
+        if (IsFixedPosition) return Fix64.MaxValue;
         //mass is overridden.
         if (_mass != null)
           return _mass.GetValueOrDefault();
@@ -537,7 +538,10 @@ namespace Volatile
     {
       if (IsEnabled == false) return false;
       // Ignore self and static-static collisions
-      if ((this == other) || (this.IsStatic && other.IsStatic))
+      if ((this == other) || (this.IsStatic && other.IsStatic) ||
+      // Ignore fixed-fixed collisions
+        (this.IsFixedAngle && other.IsFixedAngle &&
+        this.IsFixedPosition && other.IsFixedPosition))
         return false;
 
       if (IgnoreTriggers && other.IsTrigger)
@@ -663,7 +667,7 @@ namespace Volatile
       }
 
       //TODO
-      //if (!IsFixedPosition)
+      if (!IsFixedPosition)
         this.Position = targetPosition;
       if (!IsFixedAngle)
         this.Angle +=

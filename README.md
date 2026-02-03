@@ -52,10 +52,10 @@ Stripped Additions:
 - Body IgnoreTriggers
 - Sorted Body Order
 - Raycast Movement
+- Fixed body position
 
 Wishlist:
 - Joints and constraints
-- Fixed body position
 - Static/Dynamic body type variable setting
 
 Not Supported:
