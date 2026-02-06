@@ -147,7 +147,7 @@ namespace Volatile
     /// <summary>
     /// The local linear damping.
     /// </summary>
-    public Fix64 LinearDamping { get; set; } = (Fix64)1;
+    public VoltVector2 LinearDamping { get; set; } = VoltVector2.one;
     /// <summary>
     /// The local angular damping.
     /// </summary>
@@ -632,7 +632,9 @@ namespace Volatile
          * Mass;
 
       // Apply damping
-      this.LinearVelocity *= this.World.LinearDamping * this.LinearDamping;
+      Fix64 xVelocity = this.LinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
+      Fix64 yVelocity = this.LinearVelocity.y * this.LinearDamping.y * this.World.LinearDamping.y;
+      this.LinearVelocity = new VoltVector2(xVelocity, yVelocity);
       this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
 
       // Calculate total force and torque

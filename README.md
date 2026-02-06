@@ -53,6 +53,7 @@ Stripped Additions:
 - Sorted Body Order
 - Raycast Movement
 - Fixed body position
+- Per Axis Linear Damping
 
 Wishlist:
 - Joints and constraints
