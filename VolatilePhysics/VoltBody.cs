@@ -698,10 +698,8 @@ namespace Volatile
       {
         //move to collision point
         targetPosition = result.ComputePoint(ref ray);
-        Console.WriteLine("Collided with object, setting target position.");
         return;
       }
-      Console.WriteLine("No Collision, no raycast move.");
     }
 
     private void ClearForces()
