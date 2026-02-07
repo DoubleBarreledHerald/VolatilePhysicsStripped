@@ -676,14 +676,21 @@ namespace Volatile
       this.Facing = VoltMath.Polar(this.Angle);
     }
 
+    public VoltVector2 rayMoveOrigin;
+    public VoltVector2 rayMoveTarget;
+
     private void IntegrateRaycastMove(ref VoltVector2 targetPosition)
     {
-      if ((Position - targetPosition).Length() == Fix64.Zero) return;
+      if ((Position - targetPosition).Length() == Fix64.Zero) 
+        return;
 
-      if (World.QueryPoint(Position, CanCollide).Count > 0) return;
+      if (World.QueryPoint(Position, CanCollide).Count > 0) 
+        return;
 
       //Raycast from current position to target position
       var ray = new VoltRayCast(Position, targetPosition);
+      rayMoveOrigin = Position;
+      rayMoveTarget = targetPosition;
       var result = new VoltRayResult();
 
       //on collide
@@ -691,7 +698,10 @@ namespace Volatile
       {
         //move to collision point
         targetPosition = result.ComputePoint(ref ray);
+        Console.WriteLine("Collided with object, setting target position.");
+        return;
       }
+      Console.WriteLine("No Collision, no raycast move.");
     }
 
     private void ClearForces()

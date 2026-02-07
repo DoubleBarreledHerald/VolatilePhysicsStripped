@@ -53,9 +53,11 @@ namespace Volatile
       Fix64 invX = Fix64.MaxValue;
       if (direction.x != Fix64.Zero)
         invX = Fix64.One / direction.x;
+
       Fix64 invY = Fix64.MaxValue;
       if (direction.y != Fix64.Zero)
-        invX = Fix64.One / direction.y;
+        invY = Fix64.One / direction.y;
+        
       this.invDirection = new VoltVector2(invX, invY);
     }
 
@@ -70,9 +72,11 @@ namespace Volatile
       Fix64 invX = Fix64.MaxValue;
       if (direction.x != Fix64.Zero)
         invX = Fix64.One / direction.x;
+
       Fix64 invY = Fix64.MaxValue;
       if (direction.y != Fix64.Zero)
-        invX = Fix64.One / direction.y;
+        invY = Fix64.One / direction.y;
+
       this.invDirection = new VoltVector2(invX, invY);
     }
   }
