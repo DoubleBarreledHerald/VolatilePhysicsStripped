@@ -434,7 +434,6 @@ namespace Volatile
             for (int i = 0; i < this.reusableBuffer.Count; i++)
             {
                 VoltBody body = this.reusableBuffer[i];
-                Console.WriteLine("Got Collider: " + body.ID);
                 if (VoltBody.Filter(body, filter))
                 {
                     body.RayCast(ref ray, ref result);
