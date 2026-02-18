@@ -554,15 +554,19 @@ namespace Volatile
     internal void ApplyImpulse(VoltVector2 j, VoltVector2 r)
     {
       if (IsEnabled == false) return;
-      this.LinearVelocity += j * this.InvMass;
-      this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
+      if (!IsFixedPosition)
+        this.LinearVelocity += j * this.InvMass;
+      if (!IsFixedAngle)
+        this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
     }
 
     internal void ApplyBias(VoltVector2 j, VoltVector2 r)
     {
       if (IsEnabled == false) return;
-      this.BiasVelocity += j * this.InvMass;
-      this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r);
+      if (!IsFixedPosition)
+        this.BiasVelocity += j * this.InvMass;
+      if (!IsFixedAngle)
+        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r);
     }
     #endregion
 
@@ -634,8 +638,10 @@ namespace Volatile
       // Apply damping
       Fix64 xVelocity = this.LinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
       Fix64 yVelocity = this.LinearVelocity.y * this.LinearDamping.y * this.World.LinearDamping.y;
-      this.LinearVelocity = new VoltVector2(xVelocity, yVelocity);
-      this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
+      if (!IsFixedPosition)
+        this.LinearVelocity = new VoltVector2(xVelocity, yVelocity);
+      if (!IsFixedAngle)
+        this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
 
       // Calculate total force and torque
       VoltVector2 totalForce = this.Force * this.InvMass;
@@ -654,22 +660,29 @@ namespace Volatile
       Fix64 torque,
       Fix64 mult)
     {
-      this.LinearVelocity += this.World.DeltaTime * force * mult;
-      this.AngularVelocity -= this.World.DeltaTime * torque * mult;
+      if (!IsFixedPosition)
+        this.LinearVelocity += this.World.DeltaTime * force * mult;
+      if (!IsFixedAngle)
+        this.AngularVelocity -= this.World.DeltaTime * torque * mult;
     }
 
     private void IntegrateVelocity()
     {
-      VoltVector2 targetPosition = this.Position + this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
-
-      if (RaycastMove)
+      //Position
+      if (!IsFixedPosition)
       {
-        IntegrateRaycastMove(ref targetPosition);
+        VoltVector2 targetPosition =
+          this.Position + this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
+
+        if (RaycastMove)
+        {
+          IntegrateRaycastMove(ref targetPosition);
+        }
+
+        this.Position = targetPosition;
       }
 
-      //TODO
-      if (!IsFixedPosition)
-        this.Position = targetPosition;
+      //Rotation
       if (!IsFixedAngle)
         this.Angle +=
           this.World.DeltaTime * this.AngularVelocity + this.BiasRotation;
