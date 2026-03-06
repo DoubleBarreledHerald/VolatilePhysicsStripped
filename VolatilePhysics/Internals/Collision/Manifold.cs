@@ -74,11 +74,13 @@ namespace Volatile
       if (this.used >= VoltConfig.MAX_CONTACTS)
         return false;
 
-      ShapeA.OnCollide(ShapeB, position, normal, penetration);
-      ShapeB.OnCollide(ShapeA, position, normal, penetration);
+      Fix64 absPenetration = Fix64.Abs(penetration);
 
-      ShapeA.Body.OnCollide(ShapeB.Body, position, normal, penetration);
-      ShapeB.Body.OnCollide(ShapeA.Body, position, normal, penetration);
+      ShapeA.OnCollide(ShapeB, position, normal, absPenetration);
+      ShapeB.OnCollide(ShapeA, position, -normal, absPenetration);
+
+      ShapeA.Body.OnCollide(ShapeB.Body, position, normal, absPenetration);
+      ShapeB.Body.OnCollide(ShapeA.Body, position, -normal, absPenetration);
 
       this.contacts[this.used] =
         this.world.AllocateContact().Assign(
