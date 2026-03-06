@@ -22,6 +22,7 @@
 using UnityEngine;
 #endif
 
+using System;
 using FixMath.NET;
 
 namespace Volatile
@@ -109,6 +110,26 @@ namespace Volatile
       } else {
         OnCollision?.Invoke(this, collision, position, normal, penetration);
       }
+    }
+
+    public Delegate[] GetCollisionDelegates()
+    {
+      return OnCollision.GetInvocationList();
+    }
+
+    public void ClearOnCollisionEvent()
+    {
+      OnCollision = null;
+    }
+
+    public Delegate[] GetTriggerDelegates()
+    {
+      return OnTrigger.GetInvocationList();
+    }
+
+    public void ClearOnTriggerEvent()
+    {
+      OnTrigger = null;
     }
 
     #region Body-Related

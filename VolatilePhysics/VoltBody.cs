@@ -190,6 +190,32 @@ namespace Volatile
       OnCollision = null;
     }
 
+    public void ClearShapesOnCollisionEvent()
+    {
+      foreach (VoltShape shape in shapes)
+      {
+        shape.ClearOnCollisionEvent();
+      }
+    }
+
+    public Delegate[] GetTriggerDelegates()
+    {
+      return OnTrigger.GetInvocationList();
+    }
+
+    public void ClearOnTriggerEvent()
+    {
+      OnTrigger = null;
+    }
+    
+    public void ClearShapesOnTriggerEvent()
+    {
+      foreach (VoltShape shape in shapes)
+      {
+        shape.ClearOnTriggerEvent();
+      }
+    }
+
     /// <summary>
     /// The collective mass of each of the shapes that make up the body.
     /// If set, overrides.
