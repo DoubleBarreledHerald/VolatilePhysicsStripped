@@ -47,7 +47,7 @@ Stripped Additions:
     - Body and World Gravity strength and direction
     - Physics body Linear and Angular Damping
 - OnCollision action for bodies and shapes
-- Trigger colliders
+- Trigger colliders and events
 - Body and shape IgnoreRaycasts
 - Body IgnoreTriggers
 - Sorted Body Order

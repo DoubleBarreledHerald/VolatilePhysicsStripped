@@ -168,9 +168,16 @@ namespace Volatile
     public delegate void CollisionEventHandler(VoltBody bodyA, VoltBody bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
     public event CollisionEventHandler OnCollision;
 
+    public delegate void TriggerEventHandler(VoltBody bodyA, VoltBody bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
+    public event TriggerEventHandler OnTrigger;
+
     internal void OnCollide(VoltBody collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
-      OnCollision?.Invoke(this, collision, position, normal, penetration);
+      if (IsTrigger) {
+        OnTrigger?.Invoke(this, collision, position, normal, penetration);
+      } else {
+        OnCollision?.Invoke(this, collision, position, normal, penetration);
+      }
     }
 
     public Delegate[] GetCollisionDelegates()
