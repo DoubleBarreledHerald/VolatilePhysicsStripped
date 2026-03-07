@@ -100,16 +100,9 @@ namespace Volatile
     public delegate void CollisionEventHandler(VoltShape bodyA, VoltShape bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
     public event CollisionEventHandler OnCollision;
 
-    public delegate void TriggerEventHandler(VoltShape bodyA, VoltShape bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
-    public event TriggerEventHandler OnTrigger;
-
     internal void OnCollide(VoltShape collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
-      if (IsTrigger) {
-        OnTrigger?.Invoke(this, collision, position, normal, penetration);
-      } else {
-        OnCollision?.Invoke(this, collision, position, normal, penetration);
-      }
+      OnCollision?.Invoke(this, collision, position, normal, penetration);
     }
 
     public Delegate[] GetCollisionDelegates()
@@ -120,16 +113,6 @@ namespace Volatile
     public void ClearOnCollisionEvent()
     {
       OnCollision = null;
-    }
-
-    public Delegate[] GetTriggerDelegates()
-    {
-      return OnTrigger.GetInvocationList();
-    }
-
-    public void ClearOnTriggerEvent()
-    {
-      OnTrigger = null;
     }
 
     #region Body-Related

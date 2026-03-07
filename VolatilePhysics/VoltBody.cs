@@ -207,14 +207,6 @@ namespace Volatile
     {
       OnTrigger = null;
     }
-    
-    public void ClearShapesOnTriggerEvent()
-    {
-      foreach (VoltShape shape in shapes)
-      {
-        shape.ClearOnTriggerEvent();
-      }
-    }
 
     /// <summary>
     /// The collective mass of each of the shapes that make up the body.
