@@ -22,6 +22,7 @@
 using UnityEngine;
 #endif
 
+using System;
 using FixMath.NET;
 
 namespace Volatile

@@ -22,6 +22,7 @@
 using UnityEngine;
 #endif
 
+using System;
 using FixMath.NET;
 
 namespace Volatile
@@ -386,6 +387,7 @@ namespace Volatile
           if (manifold.AddContact(vertex, normal, penetration) == false)
             return;
           found = true;
+          break;
         }
       }
 
@@ -397,6 +399,7 @@ namespace Volatile
           if (manifold.AddContact(vertex, normal, penetration) == false)
             return;
           found = true;
+          break;
         }
       }
 
@@ -419,16 +422,22 @@ namespace Volatile
       {
         VoltVector2 vertex = poly1.worldVertices[i];
         if (poly2.ContainsPointPartial(vertex, normal) == true)
+        {
           if (manifold.AddContact(vertex, normal, penetration) == false)
             return;
+          break;
+        }
       }
 
       for (int i = 0; i < poly2.countWorld; i++)
       {
         VoltVector2 vertex = poly2.worldVertices[i];
         if (poly1.ContainsPointPartial(vertex, -normal) == true)
+        {
           if (manifold.AddContact(vertex, normal, penetration) == false)
             return;
+          break;
+        }
       }
     }
     #endregion
