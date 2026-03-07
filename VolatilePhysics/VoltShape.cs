@@ -103,6 +103,7 @@ namespace Volatile
     internal void OnCollide(VoltShape collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
       OnCollision?.Invoke(this, collision, position, normal, penetration);
+      Body.OnTriggered(collision.Body, position, normal, penetration);
     }
 
     public Delegate[] GetCollisionDelegates()

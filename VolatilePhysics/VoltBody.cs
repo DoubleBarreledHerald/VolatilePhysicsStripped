@@ -173,11 +173,17 @@ namespace Volatile
 
     internal void OnCollide(VoltBody collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
-      if (IsTrigger) {
-        OnTrigger?.Invoke(this, collision, position, normal, penetration);
+      if (IsTrigger)
+      {
+        OnTriggered(collision, position, normal, penetration);
       } else {
         OnCollision?.Invoke(this, collision, position, normal, penetration);
       }
+    }
+
+    internal void OnTriggered(VoltBody collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
+    {
+      OnTrigger?.Invoke(this, collision, position, normal, penetration);
     }
 
     public Delegate[] GetCollisionDelegates()
