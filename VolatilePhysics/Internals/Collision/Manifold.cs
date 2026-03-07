@@ -80,8 +80,8 @@ namespace Volatile
       ShapeA.OnCollide(ShapeB, position, normal, absPenetration);
       ShapeB.OnCollide(ShapeA, position, -normal, absPenetration);
 
-      ShapeA.Body.OnCollide(ShapeB.Body, position, normal, absPenetration);
-      ShapeB.Body.OnCollide(ShapeA.Body, position, -normal, absPenetration);
+      if (!ShapeA.IsTrigger) ShapeA.Body.OnCollide(ShapeB.Body, position, normal, absPenetration);
+      if (!ShapeB.IsTrigger) ShapeB.Body.OnCollide(ShapeA.Body, position, -normal, absPenetration);
 
       this.contacts[this.used] =
         this.world.AllocateContact().Assign(
