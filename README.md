@@ -56,6 +56,7 @@ Stripped Additions:
 - Per Axis Linear Damping
 
 Wishlist:
+- Body Sleep
 - Joints and constraints
 - Static/Dynamic body type variable setting
 
