@@ -301,6 +301,14 @@ namespace Volatile
                 ResortBodies();
             }
 
+            //Apply forces
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                body.IntegrateVelocity();
+            }
+
+            //Find collisions
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
@@ -315,9 +323,52 @@ namespace Volatile
             }
 
             //Start checking collisions
-            this.BroadPhase();
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody query = this.bodies[i];
+                //Ignore static bodies
+                if (query.IsStatic)
+                    continue;
 
-            this.UpdateCollision();
+                this.reusableBuffer.Clear();
+                //Get the AABB collisions for each body, static and dynamic
+                this.staticBroadphase.QueryOverlap(query.AABB, this.reusableBuffer);
+
+                // HACK: Don't use dynamic broadphase for global updates for this.
+                // It's faster if we do it manually because we can triangularize.
+                //Get every body after query, add if body is not static.
+                for (int j = i + 1; j < this.bodies.Count; j++)
+                    if (this.bodies[j].IsStatic == false)
+                        this.reusableBuffer.Add(this.bodies[j]);
+
+                this.TestBuffer(query);
+            }
+
+            //PreStep and solve
+            for (int i = 0; i < this.manifolds.Count; i++)
+                this.manifolds[i].PreStep();
+
+            this.Elasticity = Fix64.One;
+            for (int j = 0; j < this.IterationCount * 1 / 3; j++)
+                for (int i = 0; i < this.manifolds.Count; i++)
+                    this.manifolds[i].Solve();
+
+            for (int i = 0; i < this.manifolds.Count; i++)
+                this.manifolds[i].SolveCached();
+
+            this.Elasticity = Fix64.Zero;
+            for (int j = 0; j < this.IterationCount * 2 / 3; j++)
+                for (int i = 0; i < this.manifolds.Count; i++)
+                    this.manifolds[i].Solve();
+
+
+            //Apply forces
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                body.IntegrateBias();
+            }
+
             this.FreeManifolds();
         }
 
@@ -341,30 +392,6 @@ namespace Volatile
             {
                 bodies.Add(voltBodies[i]);
             }
-        }
-
-        /// <summary>
-        /// Updates a single body, resolving only collisions with that body.
-        /// If a frame number is provided, all dynamic bodies will store their
-        /// state for that frame for later testing.
-        /// 
-        /// Note: This function is best used with dynamic collisions disabled, 
-        /// otherwise you might get symmetric duplicates on collisions.
-        /// </summary>
-        public void Update(VoltBody body, bool collideDynamic = false)
-        {
-            if (body.IsStatic)
-            {
-                VoltDebug.LogWarning("Updating static body, doing nothing");
-                return;
-            }
-
-            body.Update();
-            this.dynamicBroadphase.UpdateBody(body);
-            this.BroadPhase(body, collideDynamic);
-
-            this.UpdateCollision();
-            this.FreeManifolds();
         }
 
         /// <summary>
@@ -496,33 +523,6 @@ namespace Volatile
         }
 
         /// <summary>
-        /// Identifies collisions for all bodies, ignoring symmetrical duplicates.
-        /// </summary>
-        private void BroadPhase()
-        {
-            for (int i = 0; i < this.bodies.Count; i++)
-            {
-                VoltBody query = this.bodies[i];
-                //Ignore static bodies
-                if (query.IsStatic)
-                    continue;
-
-                this.reusableBuffer.Clear();
-                //Get the AABB collisions for each body, static and dynamic
-                this.staticBroadphase.QueryOverlap(query.AABB, this.reusableBuffer);
-
-                // HACK: Don't use dynamic broadphase for global updates for this.
-                // It's faster if we do it manually because we can triangularize.
-                //Get every body after query, add if body is not static.
-                for (int j = i + 1; j < this.bodies.Count; j++)
-                    if (this.bodies[j].IsStatic == false)
-                        this.reusableBuffer.Add(this.bodies[j]);
-
-                this.TestBuffer(query);
-            }
-        }
-
-        /// <summary>
         /// Identifies collisions for a single body. Does not keep track of 
         /// symmetrical duplicates (they could be counted twice).
         /// </summary>
@@ -569,25 +569,6 @@ namespace Volatile
             Manifold manifold = Collision.Dispatch(this, sa, sb);
             if (manifold != null)
                 this.manifolds.Add(manifold);
-        }
-
-        private void UpdateCollision()
-        {
-            for (int i = 0; i < this.manifolds.Count; i++)
-                this.manifolds[i].PreStep();
-
-            this.Elasticity = Fix64.One;
-            for (int j = 0; j < this.IterationCount * 1 / 3; j++)
-                for (int i = 0; i < this.manifolds.Count; i++)
-                    this.manifolds[i].Solve();
-
-            for (int i = 0; i < this.manifolds.Count; i++)
-                this.manifolds[i].SolveCached();
-
-            this.Elasticity = Fix64.Zero;
-            for (int j = 0; j < this.IterationCount * 2 / 3; j++)
-                for (int i = 0; i < this.manifolds.Count; i++)
-                    this.manifolds[i].Solve();
         }
 
         #region Pooling

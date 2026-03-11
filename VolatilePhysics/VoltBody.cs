@@ -256,6 +256,7 @@ namespace Volatile
     public Fix64 InvMass { get; private set; }
     public Fix64 InvInertia { get; private set; }
 
+    public Fix64 ResolveMult { get; set; } = Fix64.One;
     public VoltVector2 BiasVelocity { get; private set; }
     public Fix64 BiasRotation { get; private set; }
 
@@ -486,8 +487,7 @@ namespace Volatile
     internal void Update()
     {
       if (IsEnabled == false) return;
-      this.Integrate();
-      this.OnPositionUpdated();
+      this.IntegrateForces();
     }
 
     internal void AssignWorld(VoltWorld world, int id)
@@ -595,9 +595,9 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (!IsFixedPosition)
-        this.BiasVelocity += j * this.InvMass;
+        this.BiasVelocity += j * this.InvMass * ResolveMult;
       if (!IsFixedAngle)
-        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r);
+        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r) * ResolveMult;
     }
     #endregion
 
@@ -655,7 +655,7 @@ namespace Volatile
     /// <summary>
     /// Computes forces and dynamics and applies them to position and angle.
     /// </summary>
-    private void Integrate()
+    public void IntegrateForces()
     {
       if (IsEnabled == false) return;
       //Apply gravity
@@ -678,12 +678,7 @@ namespace Volatile
       VoltVector2 totalForce = this.Force * this.InvMass;
       Fix64 totalTorque = this.Torque * this.InvInertia;
 
-      // See http://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html
-      this.IntegrateForces(totalForce, totalTorque, Fix64.One / (Fix64)2);
-      this.IntegrateVelocity();
-      this.IntegrateForces(totalForce, totalTorque, Fix64.One / (Fix64)2);
-
-      this.ClearForces();
+      this.IntegrateForces(totalForce, totalTorque, Fix64.One);
     }
 
     private void IntegrateForces(
@@ -697,13 +692,13 @@ namespace Volatile
         this.AngularVelocity -= this.World.DeltaTime * torque * mult;
     }
 
-    private void IntegrateVelocity()
+    internal void IntegrateVelocity()
     {
       //Position
       if (!IsFixedPosition)
       {
         VoltVector2 targetPosition =
-          this.Position + this.World.DeltaTime * this.LinearVelocity + this.BiasVelocity;
+          this.Position + this.World.DeltaTime * this.LinearVelocity;
 
         if (RaycastMove)
         {
@@ -716,8 +711,24 @@ namespace Volatile
       //Rotation
       if (!IsFixedAngle)
         this.Angle +=
-          this.World.DeltaTime * this.AngularVelocity + this.BiasRotation;
+          this.World.DeltaTime * this.AngularVelocity;
       this.Facing = VoltMath.Polar(this.Angle);
+      OnPositionUpdated();
+    }
+
+    internal void IntegrateBias()
+    {
+      //Position
+      if (!IsFixedPosition)
+        this.Position += this.BiasVelocity;
+
+      //Rotation
+      if (!IsFixedAngle)
+        this.Angle += this.BiasRotation;
+      this.Facing = VoltMath.Polar(this.Angle);
+      
+      this.ClearForces();
+      OnPositionUpdated();
     }
 
     public VoltVector2 rayMoveOrigin;
