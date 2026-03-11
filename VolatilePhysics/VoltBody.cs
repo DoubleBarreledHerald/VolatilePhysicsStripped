@@ -256,7 +256,6 @@ namespace Volatile
     public Fix64 InvMass { get; private set; }
     public Fix64 InvInertia { get; private set; }
 
-    public Fix64 ResolveMult { get; set; } = Fix64.One;
     public VoltVector2 BiasVelocity { get; private set; }
     public Fix64 BiasRotation { get; private set; }
 
@@ -595,9 +594,9 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (!IsFixedPosition)
-        this.BiasVelocity += j * this.InvMass * ResolveMult;
+        this.BiasVelocity += j * this.InvMass;
       if (!IsFixedAngle)
-        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r) * ResolveMult;
+        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r);
     }
     #endregion
 
