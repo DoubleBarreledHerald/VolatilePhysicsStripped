@@ -140,7 +140,7 @@ namespace Volatile
       Fix64 vrn = VoltVector2.Dot(vr, this.normal);
 
       // Calculate and clamp the normal impulse
-      Fix64 jn = nMass * (vrn + (this.restitution * elasticity));
+      Fix64 jn = nMass * (vrn + this.restitution * elasticity);
       jn = VoltMath.Max(-this.cachedNormalImpulse, jn);
       this.cachedNormalImpulse += jn;
 
