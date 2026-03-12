@@ -305,6 +305,9 @@ namespace Volatile
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
+                if (body.IsStatic)
+                    continue;
+
                 body.IntegrateVelocity();
             }
 
@@ -366,6 +369,9 @@ namespace Volatile
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
+                if (body.IsStatic)
+                    continue;
+                    
                 body.IntegrateBias();
             }
 
