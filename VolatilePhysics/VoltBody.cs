@@ -657,13 +657,13 @@ namespace Volatile
     public void IntegrateForces()
     {
       if (IsEnabled == false) return;
-      //Apply gravity
-      this.Force +=
-        (
-          (IsAffectedByWorldGravity ? World.Gravity : VoltVector2.zero)
-           + Gravity
-        )
-         * Mass;
+      
+      //Apply global gravity
+      if (IsAffectedByWorldGravity)
+        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime;
+
+      //Apply personal gravity
+      this.LinearVelocity += Gravity * this.World.DeltaTime;
 
       // Apply damping
       Fix64 xVelocity = this.LinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
@@ -693,26 +693,36 @@ namespace Volatile
 
     internal void IntegrateVelocity()
     {
-      //Position
-      if (!IsFixedPosition)
+      IntegratePosition();
+      IntegrateRotation();
+
+      OnPositionUpdated();
+    }
+
+    private void IntegratePosition()
+    {
+      if (IsFixedPosition)
+        return;
+
+      VoltVector2 targetPosition =
+        this.Position + this.World.DeltaTime * this.LinearVelocity;
+
+      if (RaycastMove)
       {
-        VoltVector2 targetPosition =
-          this.Position + this.World.DeltaTime * this.LinearVelocity;
-
-        if (RaycastMove)
-        {
-          IntegrateRaycastMove(ref targetPosition);
-        }
-
-        this.Position = targetPosition;
+        IntegrateRaycastMove(ref targetPosition);
       }
 
-      //Rotation
-      if (!IsFixedAngle)
-        this.Angle +=
-          this.World.DeltaTime * this.AngularVelocity;
+      this.Position = targetPosition;
+    }
+
+    private void IntegrateRotation()
+    {
+      if (IsFixedAngle)
+        return;
+
+      this.Angle +=
+        this.World.DeltaTime * this.AngularVelocity;
       this.Facing = VoltMath.Polar(this.Angle);
-      OnPositionUpdated();
     }
 
     internal void IntegrateBias()
