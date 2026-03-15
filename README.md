@@ -56,7 +56,6 @@ Stripped Additions:
 - Per Axis Linear Damping
 
 Wishlist:
-- WorldScale
 - Body Sleep
 - Joints and constraints
 - Static/Dynamic body type variable setting
