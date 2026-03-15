@@ -37,11 +37,13 @@ namespace Volatile
       Fix64 friction,
       Fix64 restitution)
     {
+      VoltWorld.ScaleToWorld(ref vertices);
+
       base.Initialize(density, friction, restitution);
       this.UpdateArrays(vertices.Length);
 
       this.countWorld = vertices.Length;
-      Array.Copy(vertices, this.worldVertices, this.countWorld);
+      Array.Copy(vertices, this._worldVertices, this.countWorld);
       VoltPolygon.ComputeAxes(vertices, this.countWorld, ref this.worldAxes);
       this.worldSpaceAABB = 
         VoltPolygon.ComputeBounds(vertices, this.countWorld);
@@ -55,6 +57,8 @@ namespace Volatile
       Fix64 friction,
       Fix64 restitution)
     {
+      VoltWorld.ScaleToWorld(ref vertices);
+
       base.Initialize(density, friction, restitution);
       this.UpdateArrays(vertices.Length);
 
@@ -125,6 +129,7 @@ namespace Volatile
 
     #region Fields
     public VoltVector2[] worldVertices { get; private set; }
+    internal VoltVector2[] _worldVertices { get; private set; }
     internal Axis[] worldAxes;
     internal int countWorld;
 
@@ -157,7 +162,7 @@ namespace Volatile
         // Compute body-space geometry data (only need to do this once)
         VoltPolygon.WorldToBody(
           this.Body, 
-          this.worldVertices,
+          this._worldVertices,
           this.bodyVertices, 
           this.countWorld);
         this.countBody = this.countWorld;
@@ -175,14 +180,15 @@ namespace Volatile
     {
       for (int i = 0; i < this.countWorld; i++)
       {
-        this.worldVertices[i] =
+        this._worldVertices[i] =
           this.Body.BodyToWorldPointCurrent(this.bodyVertices[i]);
+        this.worldVertices[i] = VoltWorld.ScaleFromWorld(this._worldVertices[i]);
         this.worldAxes[i] =
           this.Body.BodyToWorldAxisCurrent(this.bodyAxes[i]);
       }
 
       this.worldSpaceAABB = 
-        VoltPolygon.ComputeBounds(this.worldVertices, this.countWorld);
+        VoltPolygon.ComputeBounds(this._worldVertices, this.countWorld);
     }
     #endregion
 
@@ -332,8 +338,8 @@ namespace Volatile
     /// </summary>
     internal void GetEdge(int indexFirst, out VoltVector2 a, out VoltVector2 b)
     {
-      a = this.worldVertices[indexFirst];
-      b = this.worldVertices[(indexFirst + 1) % this.countWorld];
+      a = this._worldVertices[indexFirst];
+      b = this._worldVertices[(indexFirst + 1) % this.countWorld];
     }
 
     /// <summary>
@@ -377,11 +383,12 @@ namespace Volatile
     #region Internals
     private void UpdateArrays(int length)
     {
-      if ((this.worldVertices == null) ||
-          (this.worldVertices.Length < length))
+      if ((this._worldVertices == null) ||
+          (this._worldVertices.Length < length))
       {
-        this.worldVertices = new VoltVector2[length];
+        this._worldVertices = new VoltVector2[length];
         this.worldAxes = new Axis[length];
+        this.worldVertices = new VoltVector2[length];
       }
 
       if ((this.bodyVertices == null) ||

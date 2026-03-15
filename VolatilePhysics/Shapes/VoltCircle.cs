@@ -40,23 +40,25 @@ namespace Volatile
     {
       base.Initialize(density, friction, restitution);
 
-      this.worldSpaceOrigin = worldSpaceOrigin;
-      this.radius = radius;
-      this.sqrRadius = radius * radius;
-      this.worldSpaceAABB = new VoltAABB(worldSpaceOrigin, radius);
+      this.Origin = worldSpaceOrigin;
+      this._worldSpaceOrigin = VoltWorld.ScaleToWorld(this.Origin);
+      this.Radius = radius;
+      this._radius = VoltWorld.ScaleToWorld(this.Radius);
+      this.sqrRadius = this._radius * this._radius;
+      this.worldSpaceAABB = new VoltAABB(this._worldSpaceOrigin, this._radius);
     }
     #endregion
 
     #region Properties
     public override VoltShape.ShapeType Type { get { return ShapeType.Circle; } }
 
-    public VoltVector2 Origin { get { return this.worldSpaceOrigin; } }
-    public Fix64 Radius { get { return this.radius; } }
+    public VoltVector2 Origin { get; private set; }
+    public Fix64 Radius { get; private set; }
     #endregion
 
     #region Fields
-    internal VoltVector2 worldSpaceOrigin;
-    internal Fix64 radius;
+    internal VoltVector2 _worldSpaceOrigin;
+    internal Fix64 _radius;
     internal Fix64 sqrRadius;
 
     // Precomputed body-space values (these should never change unless we
@@ -72,9 +74,10 @@ namespace Volatile
     protected override void Reset()
     {
       base.Reset();
-
-      this.worldSpaceOrigin = VoltVector2.zero;
-      this.radius = Fix64.Zero;
+      this.Origin = VoltVector2.zero;
+      this._worldSpaceOrigin = VoltVector2.zero;
+      this.Radius = Fix64.Zero;
+      this._radius = Fix64.Zero;
       this.sqrRadius = Fix64.Zero;
       this.bodySpaceOrigin = VoltVector2.zero;
     }
@@ -83,8 +86,8 @@ namespace Volatile
     protected override void ComputeMetrics()
     {
       this.bodySpaceOrigin =
-        this.Body.WorldToBodyPointCurrent(this.worldSpaceOrigin);
-      this.bodySpaceAABB = new VoltAABB(this.bodySpaceOrigin, this.radius);
+        this.Body.WorldToBodyPointCurrent(this._worldSpaceOrigin);
+      this.bodySpaceAABB = new VoltAABB(this.bodySpaceOrigin, this._radius);
 
       this.Area = this.sqrRadius * VoltMath.PI;
       this.Mass = this.Area * this.Density * VoltConfig.AreaMassRatio;
@@ -94,9 +97,10 @@ namespace Volatile
 
     protected override void ApplyBodyPosition()
     {
-      this.worldSpaceOrigin =
+      this._worldSpaceOrigin =
         this.Body.BodyToWorldPointCurrent(this.bodySpaceOrigin);
-      this.worldSpaceAABB = new VoltAABB(this.worldSpaceOrigin, this.radius);
+      this.Origin = VoltWorld.ScaleFromWorld(this._worldSpaceOrigin);
+      this.worldSpaceAABB = new VoltAABB(this._worldSpaceOrigin, this._radius);
     }
     #endregion
 
@@ -108,7 +112,7 @@ namespace Volatile
         Collision.TestPointCircleSimple(
           this.bodySpaceOrigin,
           bodySpacePoint, 
-          this.radius);
+          this._radius);
     }
 
     protected override bool ShapeQueryCircle(
@@ -119,7 +123,7 @@ namespace Volatile
         Collision.TestCircleCircleSimple(
           this.bodySpaceOrigin,
           bodySpaceOrigin, 
-          this.radius, 
+          this._radius, 
           radius);
     }
 
@@ -140,7 +144,7 @@ namespace Volatile
       Fix64 radius,
       ref VoltRayResult result)
     {
-      Fix64 totalRadius = this.radius + radius;
+      Fix64 totalRadius = this._radius + radius;
       return Collision.CircleRayCast(
         this,
         this.bodySpaceOrigin,

@@ -106,6 +106,7 @@ namespace Volatile
     public bool IsInWorld { get { return this.World != null; } }
 
     public VoltVector2 Position { get; private set; }
+    internal VoltVector2 _position { get; private set; }
 
     public VoltVector2 Facing { get; private set; }
 
@@ -173,6 +174,8 @@ namespace Volatile
 
     internal void OnCollide(VoltBody collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
+      VoltWorld.ScaleFromWorld(ref position);
+      VoltWorld.ScaleFromWorld(ref penetration);
       if (IsTrigger)
       {
         OnTriggered(collision, position, normal, penetration);
@@ -279,19 +282,20 @@ namespace Volatile
     public void AddForce(VoltVector2 force)
     {
       if (IsEnabled == false) return;
-      this.Force += force;
+      this.Force += VoltWorld.ScaleToWorld(force);
     }
 
     public void AddForce(VoltVector2 force, VoltVector2 point)
     {
       if (IsEnabled == false) return;
-      this.Force += force;
-      this.Torque += VoltMath.Cross(this.Position - point, force);
+      this.Force += VoltWorld.ScaleToWorld(force);
+      this.Torque += VoltMath.Cross(this._position - point, force);
     }
 
     public void Set(VoltVector2 position, Fix64 radians)
     {
       this.Position = position;
+      this._position = VoltWorld.ScaleToWorld(this.Position);
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
       this.OnPositionUpdated();
@@ -299,7 +303,7 @@ namespace Volatile
 
     public void SetForce(VoltVector2 force, Fix64 torque, VoltVector2 biasVelocity, Fix64 biasRotation)
     {
-      this.Force = force;
+      this.Force = VoltWorld.ScaleToWorld(force);
       this.Torque = torque;
       this.BiasVelocity = biasVelocity;
       this.BiasRotation = biasRotation;
@@ -458,6 +462,7 @@ namespace Volatile
       VoltShape[] shapesToAdd)
     {
       this.Position = position;
+      this._position = VoltWorld.ScaleToWorld(this.Position);
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
 
@@ -515,6 +520,7 @@ namespace Volatile
     internal void PartialReset()
     {
       Position = VoltVector2.zero;
+      _position = VoltVector2.zero;
       Facing = VoltVector2.zero;
       AABB = new VoltAABB();
 
@@ -561,6 +567,7 @@ namespace Volatile
       this.BiasRotation = Fix64.Zero;
 
       Position = VoltVector2.zero;
+      _position = VoltVector2.zero;
       Facing = VoltVector2.zero;
       AABB = new VoltAABB();
     }
@@ -623,6 +630,7 @@ namespace Volatile
     /// </summary>
     private void OnPositionUpdated()
     {
+      Position = VoltWorld.ScaleFromWorld(_position);
       for (int i = 0; i < this.shapeCount; i++)
         this.shapes[i].OnBodyPositionUpdated();
       this.UpdateAABB();
@@ -660,7 +668,7 @@ namespace Volatile
       
       //Apply global gravity
       if (IsAffectedByWorldGravity)
-        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime;
+        this.LinearVelocity += this.World._Gravity * this.World.DeltaTime;
 
       //Apply personal gravity
       this.LinearVelocity += Gravity * this.World.DeltaTime;
@@ -705,14 +713,14 @@ namespace Volatile
         return;
 
       VoltVector2 targetPosition =
-        this.Position + this.World.DeltaTime * this.LinearVelocity;
+        this._position + this.World.DeltaTime * this.LinearVelocity;
 
       if (RaycastMove)
       {
         IntegrateRaycastMove(ref targetPosition);
       }
 
-      this.Position = targetPosition;
+      this._position = targetPosition;
     }
 
     private void IntegrateRotation()
@@ -729,7 +737,7 @@ namespace Volatile
     {
       //Position
       if (!IsFixedPosition)
-        this.Position += this.BiasVelocity;
+        this._position += this.BiasVelocity;
 
       //Rotation
       if (!IsFixedAngle)
@@ -745,15 +753,15 @@ namespace Volatile
 
     private void IntegrateRaycastMove(ref VoltVector2 targetPosition)
     {
-      if ((Position - targetPosition).Length() == Fix64.Zero) 
+      if ((_position - targetPosition).Length() == Fix64.Zero) 
         return;
 
-      if (World.QueryPoint(Position, CanCollide).Count > 0) 
+      if (World.QueryPoint(_position, CanCollide).Count > 0) 
         return;
 
       //Raycast from current position to target position
-      var ray = new VoltRayCast(Position, targetPosition);
-      rayMoveOrigin = Position;
+      var ray = new VoltRayCast(_position, targetPosition);
+      rayMoveOrigin = _position;
       rayMoveTarget = targetPosition;
       var result = new VoltRayResult();
 
@@ -826,7 +834,7 @@ namespace Volatile
 #region World-Space to Body-Space Transformations
     internal VoltVector2 WorldToBodyPoint(VoltVector2 vector)
     {
-      return VoltMath.WorldToBodyPoint(this.Position, this.Facing, vector);
+      return VoltMath.WorldToBodyPoint(this._position, this.Facing, vector);
     }
 
     internal VoltVector2 WorldToBodyDirection(VoltVector2 vector)
@@ -846,7 +854,7 @@ namespace Volatile
     #region Body-Space to World-Space Transformations
     internal VoltVector2 BodyToWorldPoint(VoltVector2 vector)
     {
-      return VoltMath.BodyToWorldPoint(this.Position, this.Facing, vector);
+      return VoltMath.BodyToWorldPoint(this._position, this.Facing, vector);
     }
 
     internal VoltVector2 BodyToWorldDirection(VoltVector2 vector)
@@ -857,7 +865,7 @@ namespace Volatile
     internal Axis BodyToWorldAxis(Axis axis)
     {
       VoltVector2 normal = axis.Normal.Rotate(this.Facing);
-      Fix64 width = VoltVector2.Dot(normal, this.Position) + axis.Width;
+      Fix64 width = VoltVector2.Dot(normal, this._position) + axis.Width;
       return new Axis(normal, width);
     }
     #endregion

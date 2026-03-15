@@ -94,8 +94,8 @@ namespace Volatile
           world,
           circA, 
           circB,
-          circB.worldSpaceOrigin, 
-          circB.radius);
+          circB._worldSpaceOrigin, 
+          circB._radius);
     }
 
     private static Manifold Circle_Polygon(
@@ -107,8 +107,8 @@ namespace Volatile
       Fix64 penetration;
       int index =
         Collision.FindAxisMaxPenetration(
-          circ.worldSpaceOrigin,
-          circ.radius,
+          circ._worldSpaceOrigin,
+          circ._radius,
           poly,
           out penetration);
 
@@ -121,7 +121,7 @@ namespace Volatile
 
       // If the circle is past one of the two vertices, check it like
       // a circle-circle intersection where the vertex has radius 0
-      Fix64 d = VoltMath.Cross(axis.Normal, circ.worldSpaceOrigin);
+      Fix64 d = VoltMath.Cross(axis.Normal, circ._worldSpaceOrigin);
       if (d > VoltMath.Cross(axis.Normal, a))
         return Collision.TestCircles(world, circ, poly, a, Fix64.Zero);
       if (d < VoltMath.Cross(axis.Normal, b))
@@ -130,7 +130,7 @@ namespace Volatile
       // Build the collision Manifold
       Manifold manifold = world.AllocateManifold().Assign(world, circ, poly);
       VoltVector2 pos =
-        circ.worldSpaceOrigin - (circ.radius + penetration / (Fix64)2) * axis.Normal;
+        circ._worldSpaceOrigin - (circ._radius + penetration / (Fix64)2) * axis.Normal;
       manifold.AddContact(pos, -axis.Normal, penetration);
       return manifold;
     }
@@ -313,8 +313,8 @@ namespace Volatile
       VoltVector2 overrideBCenter, // For testing vertices in circles
       Fix64 overrideBRadius)
     {
-      VoltVector2 r = overrideBCenter - shapeA.worldSpaceOrigin;
-      Fix64 min = shapeA.radius + overrideBRadius;
+      VoltVector2 r = overrideBCenter - shapeA._worldSpaceOrigin;
+      Fix64 min = shapeA._radius + overrideBRadius;
       Fix64 distSq = r.sqrMagnitude;
 
       if (distSq >= min * min)
@@ -326,8 +326,8 @@ namespace Volatile
       Fix64 distInv = Fix64.One / VoltMath.Max(dist, min / (Fix64)10);
 
       VoltVector2 pos =
-        shapeA.worldSpaceOrigin +
-        (Fix64.One / (Fix64)2 + distInv * (shapeA.radius - min / (Fix64)2)) * r;
+        shapeA._worldSpaceOrigin +
+        (Fix64.One / (Fix64)2 + distInv * (shapeA._radius - min / (Fix64)2)) * r;
 
       // Build the collision Manifold
       Manifold manifold = 
@@ -349,7 +349,7 @@ namespace Volatile
         Fix64 min = Fix64.MaxValue;
         for (int j = 0; j < poly2.countWorld; j++)
         {
-          VoltVector2 v = poly2.worldVertices[j];
+          VoltVector2 v = poly2._worldVertices[j];
           min = VoltMath.Min(min, VoltVector2.Dot(a.Normal, v));
         }
         min -= a.Width;
@@ -381,7 +381,7 @@ namespace Volatile
 
       for (int i = 0; i < poly1.countWorld; i++)
       {
-        VoltVector2 vertex = poly1.worldVertices[i];
+        VoltVector2 vertex = poly1._worldVertices[i];
         if (poly2.ContainsPoint(vertex) == true)
         {
           if (manifold.AddContact(vertex, normal, penetration) == false)
@@ -393,7 +393,7 @@ namespace Volatile
 
       for (int i = 0; i < poly2.countWorld; i++)
       {
-        VoltVector2 vertex = poly2.worldVertices[i];
+        VoltVector2 vertex = poly2._worldVertices[i];
         if (poly1.ContainsPoint(vertex) == true)
         {
           if (manifold.AddContact(vertex, normal, penetration) == false)
@@ -420,7 +420,7 @@ namespace Volatile
     {
       for (int i = 0; i < poly1.countWorld; i++)
       {
-        VoltVector2 vertex = poly1.worldVertices[i];
+        VoltVector2 vertex = poly1._worldVertices[i];
         if (poly2.ContainsPointPartial(vertex, normal) == true)
         {
           if (manifold.AddContact(vertex, normal, penetration) == false)
@@ -431,7 +431,7 @@ namespace Volatile
 
       for (int i = 0; i < poly2.countWorld; i++)
       {
-        VoltVector2 vertex = poly2.worldVertices[i];
+        VoltVector2 vertex = poly2._worldVertices[i];
         if (poly1.ContainsPointPartial(vertex, -normal) == true)
         {
           if (manifold.AddContact(vertex, normal, penetration) == false)

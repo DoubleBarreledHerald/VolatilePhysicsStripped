@@ -85,8 +85,8 @@ namespace Volatile
 
       if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
 
-      this.toA = this.position - bodyA.Position;
-      this.toB = this.position - bodyB.Position;
+      this.toA = this.position - bodyA._position;
+      this.toB = this.position - bodyB._position;
       this.toALeft = this.toA.Left();
       this.toBLeft = this.toB.Left();
 

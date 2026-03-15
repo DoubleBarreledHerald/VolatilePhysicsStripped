@@ -102,6 +102,8 @@ namespace Volatile
 
     internal void OnCollide(VoltShape collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
+      VoltWorld.ScaleFromWorld(ref position);
+      VoltWorld.ScaleFromWorld(ref penetration);
       OnCollision?.Invoke(this, collision, position, normal, penetration);
       Body.OnTriggered(collision.Body, position, normal, penetration);
     }

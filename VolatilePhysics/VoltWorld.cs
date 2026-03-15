@@ -82,7 +82,9 @@ namespace Volatile
         internal Fix64 Elasticity { get; private set; }
         public VoltVector2 LinearDamping { get; set; }
         public Fix64 AngularDamping { get; set; }
-        public VoltVector2 Gravity { get; set; }
+        private VoltVector2 _gravity;
+        public VoltVector2 Gravity { get { return _gravity; } set { _gravity = value; _Gravity = ScaleToWorld(_gravity); Console.WriteLine("New Gravity: " + _Gravity); } }
+        internal VoltVector2 _Gravity;
 
         private CheapList<VoltBody> bodies;
         private List<Manifold> manifolds;
@@ -102,8 +104,13 @@ namespace Volatile
         private IVoltPool<Contact> contactPool;
         private IVoltPool<Manifold> manifoldPool;
 
-        public VoltWorld(Fix64 damping)
+        public VoltWorld(Fix64 damping, Fix64? worldScale = null)
         {
+            Fix64 _scale = worldScale.GetValueOrDefault();
+            if (worldScale == null) _scale = Fix64.One;
+            VoltWorld.worldScale = _scale;
+            VoltWorld.inverseWorldScale = Fix64.One / VoltWorld.worldScale;
+
             this.LinearDamping = new VoltVector2(damping);
             this.AngularDamping = damping;
 
@@ -634,6 +641,87 @@ namespace Volatile
             return new VoltPolygon();
         }
         #endregion
+        #endregion
+
+        
+        #region WorldScaling
+        static private Fix64 worldScale = (Fix64)1;
+        static private Fix64 inverseWorldScale = (Fix64)1/worldScale;
+        static internal Fix64 ScaleToWorld(Fix64 value)
+        {
+            return value * worldScale;
+        }
+
+        static internal void ScaleToWorld(ref Fix64 value)
+        {
+            value *= worldScale;
+        }
+
+        static internal VoltVector2 ScaleToWorld(VoltVector2 value)
+        {
+            return value * worldScale;
+        }
+
+        static internal void ScaleToWorld(ref VoltVector2 value)
+        {
+            value *= worldScale;
+        }
+
+        static internal VoltVector2[] ScaleToWorld(VoltVector2[] value)
+        {
+            for (int i = value.Count() - 1; i >= 0; i--)
+            {
+                ScaleToWorld(ref value[i]);
+            }
+
+            return value;
+        }
+
+        static internal void ScaleToWorld(ref VoltVector2[] value)
+        {
+            for (int i = value.Count() - 1; i >= 0; i--)
+            {
+                ScaleToWorld(ref value[i]);
+            }
+        }
+
+        static internal Fix64 ScaleFromWorld(Fix64 value)
+        {
+            return value * inverseWorldScale;
+        }
+
+        static internal void ScaleFromWorld(ref Fix64 value)
+        {
+            value *= inverseWorldScale;
+        }
+
+        static internal VoltVector2 ScaleFromWorld(VoltVector2 value)
+        {
+            return value * inverseWorldScale;
+        }
+
+        static internal void ScaleFromWorld(ref VoltVector2 value)
+        {
+            value *= inverseWorldScale;
+        }
+
+        static internal VoltVector2[] ScaleFromWorld(VoltVector2[] value)
+        {
+            for (int i = value.Count() - 1; i >= 0; i--)
+            {
+                ScaleFromWorld(ref value[i]);
+            }
+
+            return value;
+        }
+
+        static internal void ScaleFromWorld(ref VoltVector2[] value)
+        {
+            for (int i = value.Count() - 1; i >= 0; i--)
+            {
+                ScaleFromWorld(ref value[i]);
+            }
+        }
         #endregion
     }
 }
