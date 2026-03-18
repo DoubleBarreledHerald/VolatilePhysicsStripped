@@ -311,7 +311,17 @@ namespace Volatile
                 body.IntegrateVelocity();
             }
 
-            //Find collisions
+            //sleep?
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                if (body.IsStatic)
+                    continue;
+
+                body.CallSleep();
+            }
+
+            //Find collisions / intergrate forces
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
@@ -364,6 +374,12 @@ namespace Volatile
                 for (int i = 0; i < this.manifolds.Count; i++)
                     this.manifolds[i].Solve();
 
+            //wake up
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                body.CallWakeUp();
+            }
 
             //Apply forces
             for (int i = 0; i < this.bodies.Count; i++)

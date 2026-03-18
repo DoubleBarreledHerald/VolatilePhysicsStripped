@@ -141,7 +141,7 @@ namespace Volatile
 
       // Calculate and clamp the normal impulse
       Fix64 jn = nMass * (vrn + this.restitution * elasticity);
-      jn = VoltMath.Max(-this.cachedNormalImpulse, jn);
+      jn = VoltMath.Max(-this.cachedNormalImpulse, jn); 
       this.cachedNormalImpulse += jn;
 
       // Calculate the relative tangent velocity
@@ -156,6 +156,9 @@ namespace Volatile
 
       // Apply the normal and tangent impulse
       this.ApplyContactImpulse(bodyA, bodyB, jn, jt);
+
+      bodyA.CheckWakeUp();
+      bodyB.CheckWakeUp();
     }
 
     #region Internals

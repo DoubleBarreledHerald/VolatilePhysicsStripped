@@ -54,6 +54,7 @@ Stripped Additions:
 - Raycast Movement
 - Fixed body position
 - Per Axis Linear Damping
+- Body Sleep
 
 Wishlist:
 - Body Sleep

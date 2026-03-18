@@ -93,6 +93,73 @@ namespace Volatile
       } */
     }
 
+    public bool isAwake { get; set; } = true;
+
+    public bool CanSleep { get; set; } = true;
+
+    public Fix64 SleepEpsilon = (Fix64)20;
+
+    public Fix64 SleepTimerSeconds = (Fix64)0.25;
+
+    public Fix64 IdleTime { get; set; }
+
+    internal bool WakeUp = false;
+
+    private bool CheckSleepy(){
+      var speedSquared = this.LinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
+      var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
+
+      Console.WriteLine("Sleep: " + speedSquared + " vs " + speedLimitSquared + " time: " + this.IdleTime);
+
+      // Add to idle time
+      if(speedSquared >= speedLimitSquared){
+          this.IdleTime = Fix64.Zero;
+          isAwake = true;
+      } else {
+          this.IdleTime += World.DeltaTime;
+      }
+
+      return this.IdleTime > this.SleepTimerSeconds;
+    }
+
+    public void CheckWakeUp()
+    {
+      if (!this.CanSleep || this.WakeUp || this.isAwake) return;
+
+      if (CheckSleepy()) return;
+
+      this.WakeUp = true;
+    }
+
+    public void CallSleep()
+    {
+      if (!this.CanSleep) return;
+
+      if (!this.isAwake) return;
+
+      if (!CheckSleepy()) return;
+
+      this.isAwake = false;
+      ClearForces();
+      ClearVelocities();
+    }
+
+    public void CallWakeUp()
+    {
+      if (!this.CanSleep) return;
+
+      if (this.isAwake) {
+        this.WakeUp = false;
+        return;
+      }
+
+      if (!this.WakeUp) return;
+
+      this.WakeUp = false;
+      this.IdleTime = (Fix64)0;
+      this.isAwake = true;
+    }
+
     public bool IsEnabled { get; set; } = true;
 
     public bool IsTrigger { get; set; } = false;
@@ -274,12 +341,14 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       this.Torque += torque;
+      CheckWakeUp();
     }
 
     public void AddForce(VoltVector2 force)
     {
       if (IsEnabled == false) return;
       this.Force += force;
+      CheckWakeUp();
     }
 
     public void AddForce(VoltVector2 force, VoltVector2 point)
@@ -287,6 +356,7 @@ namespace Volatile
       if (IsEnabled == false) return;
       this.Force += force;
       this.Torque += VoltMath.Cross(this.Position - point, force);
+      CheckWakeUp();
     }
 
     public void Set(VoltVector2 position, Fix64 radians)
@@ -295,6 +365,7 @@ namespace Volatile
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
       this.OnPositionUpdated();
+      CheckWakeUp();
     }
 
     public void SetForce(VoltVector2 force, Fix64 torque, VoltVector2 biasVelocity, Fix64 biasRotation)
@@ -303,6 +374,7 @@ namespace Volatile
       this.Torque = torque;
       this.BiasVelocity = biasVelocity;
       this.BiasRotation = biasRotation;
+      CheckWakeUp();
     }
 
     #endregion
@@ -569,8 +641,12 @@ namespace Volatile
     internal bool CanCollide(VoltBody other)
     {
       if (IsEnabled == false) return false;
-      // Ignore self and static-static/fixed-fixed collisions
-      if ((this == other) || ((this.IsStatic || this.IsFixed) && (other.IsStatic || other.IsFixed)))
+      // Ignore self 
+      if (this == other)
+        return false;
+
+      //Ignore static-fixed-asleep collisions
+      if ((this.IsStatic || this.IsFixed || !this.isAwake) && (other.IsStatic || other.IsFixed || !other.isAwake))
         return false;
 
       if (IgnoreTriggers && other.IsTrigger)
@@ -584,8 +660,12 @@ namespace Volatile
     internal void ApplyImpulse(VoltVector2 j, VoltVector2 r)
     {
       if (IsEnabled == false) return;
+
       if (!IsFixedPosition)
+      {
         this.LinearVelocity += j * this.InvMass;
+      }
+
       if (!IsFixedAngle)
         this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
     }
@@ -657,19 +737,16 @@ namespace Volatile
     public void IntegrateForces()
     {
       if (IsEnabled == false) return;
-      
-      //Apply global gravity
-      if (IsAffectedByWorldGravity)
-        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime;
 
-      //Apply personal gravity
-      this.LinearVelocity += Gravity * this.World.DeltaTime;
+      ApplyGravity();
 
       // Apply damping
-      Fix64 xVelocity = this.LinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
-      Fix64 yVelocity = this.LinearVelocity.y * this.LinearDamping.y * this.World.LinearDamping.y;
       if (!IsFixedPosition)
+      {
+        Fix64 xVelocity = this.LinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
+        Fix64 yVelocity = this.LinearVelocity.y * this.LinearDamping.y * this.World.LinearDamping.y;
         this.LinearVelocity = new VoltVector2(xVelocity, yVelocity);
+      }
       if (!IsFixedAngle)
         this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
 
@@ -678,6 +755,18 @@ namespace Volatile
       Fix64 totalTorque = this.Torque * this.InvInertia;
 
       this.IntegrateForces(totalForce, totalTorque, Fix64.One);
+    }
+
+    private void ApplyGravity()
+    {
+      if (!this.isAwake) return;
+
+      //Apply global gravity
+      if (this.IsAffectedByWorldGravity)
+        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime;
+
+      //Apply personal gravity
+      this.LinearVelocity += Gravity * this.World.DeltaTime;
     }
 
     private void IntegrateForces(
@@ -704,6 +793,8 @@ namespace Volatile
       if (IsFixedPosition)
         return;
 
+      if (!isAwake) return;
+
       VoltVector2 targetPosition =
         this.Position + this.World.DeltaTime * this.LinearVelocity;
 
@@ -719,6 +810,8 @@ namespace Volatile
     {
       if (IsFixedAngle)
         return;
+
+      if (!isAwake) return;
 
       this.Angle +=
         this.World.DeltaTime * this.AngularVelocity;
@@ -772,6 +865,12 @@ namespace Volatile
       this.Torque = Fix64.Zero;
       this.BiasVelocity = VoltVector2.zero;
       this.BiasRotation = Fix64.Zero;
+    }
+
+    private void ClearVelocities()
+    {
+      this.LinearVelocity = VoltVector2.zero;
+      this.AngularVelocity = Fix64.Zero;
     }
 
     private void ComputeDynamics()
