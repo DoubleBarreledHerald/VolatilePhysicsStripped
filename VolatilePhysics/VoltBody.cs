@@ -105,6 +105,8 @@ namespace Volatile
 
     internal bool WakeUp = false;
 
+    //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
+
     private bool CheckSleepy(){
       var speedSquared = this.LinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
       var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
