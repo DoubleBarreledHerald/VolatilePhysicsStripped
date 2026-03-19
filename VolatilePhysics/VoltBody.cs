@@ -111,8 +111,6 @@ namespace Volatile
       var speedSquared = this.LinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
       var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
 
-      Console.WriteLine("Sleep: " + speedSquared + " vs " + speedLimitSquared + " time: " + this.IdleTime);
-
       // Add to idle time
       if(speedSquared >= speedLimitSquared){
           this.IdleTime = Fix64.Zero;
