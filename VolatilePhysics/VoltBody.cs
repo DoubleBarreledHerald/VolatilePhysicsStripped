@@ -714,9 +714,9 @@ namespace Volatile
     private void UpdateAABB()
     {
       Fix64 top = Fix64.MinValue;
-      Fix64 right = Fix64.MaxValue;
+      Fix64 right = Fix64.MinValue;
       Fix64 bottom = Fix64.MaxValue;
-      Fix64 left = Fix64.MinValue;
+      Fix64 left = Fix64.MaxValue;
 
       for (int i = 0; i < this.shapeCount; i++)
       {
@@ -759,6 +759,7 @@ namespace Volatile
 
     private void ApplyGravity()
     {
+      if (IsEnabled == false) return;
       if (!this.isAwake) return;
 
       //Apply global gravity
@@ -774,6 +775,7 @@ namespace Volatile
       Fix64 torque,
       Fix64 mult)
     {
+      if (IsEnabled == false) return;
       if (!IsFixedPosition)
         this.LinearVelocity += this.World.DeltaTime * force * mult;
       if (!IsFixedAngle)
@@ -782,6 +784,7 @@ namespace Volatile
 
     internal void IntegrateVelocity()
     {
+      if (IsEnabled == false) return;
       IntegratePosition();
       IntegrateRotation();
 
