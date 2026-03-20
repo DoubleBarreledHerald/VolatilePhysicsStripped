@@ -105,6 +105,8 @@ namespace Volatile
 
     internal bool willWakeUp = false;
 
+    public bool SleepGravityScaling = true;
+
     //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
 
     private bool CheckSleepy(){
@@ -767,12 +769,17 @@ namespace Volatile
       if (IsEnabled == false) return;
       if (!this.isAwake) return;
 
+      Fix64 SleepDelta = Fix64.One;
+
+      if (SleepGravityScaling)
+        SleepDelta = -(VoltMath.Max(IdleTime / SleepTimerSeconds, Fix64.Zero) - Fix64.One);
+
       //Apply global gravity
       if (this.IsAffectedByWorldGravity)
-        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime;
+        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime * SleepDelta;
 
       //Apply personal gravity
-      this.LinearVelocity += Gravity * this.World.DeltaTime;
+      this.LinearVelocity += Gravity * this.World.DeltaTime * SleepDelta;
     }
 
     private void IntegrateForces(
@@ -790,6 +797,9 @@ namespace Volatile
     internal void IntegrateVelocity()
     {
       if (IsEnabled == false) return;
+
+      if (!isAwake) return;
+      
       IntegratePosition();
       IntegrateRotation();
 
@@ -828,6 +838,8 @@ namespace Volatile
 
     internal void IntegrateBias()
     {
+      if (!isAwake) return;
+
       //Position
       if (!IsFixedPosition)
         this.Position += this.BiasVelocity;
