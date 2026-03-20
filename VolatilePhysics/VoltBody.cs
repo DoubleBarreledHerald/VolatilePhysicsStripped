@@ -103,7 +103,7 @@ namespace Volatile
 
     public Fix64 IdleTime { get; set; }
 
-    internal bool WakeUp = false;
+    internal bool willWakeUp = false;
 
     //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
 
@@ -124,11 +124,11 @@ namespace Volatile
 
     public void CheckWakeUp()
     {
-      if (!this.CanSleep || this.WakeUp || this.isAwake) return;
+      if (!this.CanSleep || this.willWakeUp || this.isAwake) return;
 
       if (CheckSleepy()) return;
 
-      this.WakeUp = true;
+      this.willWakeUp = true;
     }
 
     public void CallSleep()
@@ -144,18 +144,23 @@ namespace Volatile
       ClearVelocities();
     }
 
-    public void CallWakeUp()
+    internal void CallWakeUp()
     {
       if (!this.CanSleep) return;
 
       if (this.isAwake) {
-        this.WakeUp = false;
+        this.willWakeUp = false;
         return;
       }
 
-      if (!this.WakeUp) return;
+      if (!this.willWakeUp) return;
 
-      this.WakeUp = false;
+      WakeUp();
+    }
+
+    public void WakeUp()
+    {
+      this.willWakeUp = false;
       this.IdleTime = (Fix64)0;
       this.isAwake = true;
     }
@@ -862,7 +867,7 @@ namespace Volatile
       }
     }
 
-    private void ClearForces()
+    public void ClearForces()
     {
       this.Force = VoltVector2.zero;
       this.Torque = Fix64.Zero;
@@ -870,7 +875,7 @@ namespace Volatile
       this.BiasRotation = Fix64.Zero;
     }
 
-    private void ClearVelocities()
+    public void ClearVelocities()
     {
       this.LinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
