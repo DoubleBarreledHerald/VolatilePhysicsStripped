@@ -117,11 +117,15 @@ namespace Volatile
       if(speedSquared >= speedLimitSquared){
           this.IdleTime = Fix64.Zero;
           isAwake = true;
-      } else {
-          this.IdleTime += World.DeltaTime;
+          return false;
       }
 
-      return this.IdleTime > this.SleepTimerSeconds;
+      if (this.IdleTime > this.SleepTimerSeconds){
+          return true;
+      }
+      
+      this.IdleTime += World.DeltaTime;
+      return false;
     }
 
     public void CheckWakeUp()
@@ -664,6 +668,19 @@ namespace Volatile
       return true;
     }
 
+    internal bool CanCollideRay(VoltBody other)
+    {
+      if (IsEnabled == false) return false;
+      // Ignore self 
+      if (this == other)
+        return false;
+
+      if (other.IsTrigger)
+        return false;
+      
+      return CanCollide(other);
+    }
+
     internal void ApplyImpulse(VoltVector2 j, VoltVector2 r)
     {
       if (IsEnabled == false) return;
@@ -861,7 +878,7 @@ namespace Volatile
       if ((Position - targetPosition).Length() == Fix64.Zero) 
         return;
 
-      if (World.QueryPoint(Position, CanCollide).Count > 0) 
+      if (World.QueryPoint(Position, CanCollideRay).Count > 0) 
         return;
 
       //Raycast from current position to target position
@@ -871,7 +888,7 @@ namespace Volatile
       var result = new VoltRayResult();
 
       //on collide
-      if (World.RayCast(ref ray, ref result, CanCollide))
+      if (World.RayCast(ref ray, ref result, CanCollideRay))
       {
         //move to collision point
         targetPosition = result.ComputePoint(ref ray);
