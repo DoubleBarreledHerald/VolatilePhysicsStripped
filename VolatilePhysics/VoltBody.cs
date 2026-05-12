@@ -809,6 +809,9 @@ namespace Volatile
         this.LinearVelocity += this.World.DeltaTime * force * mult;
       if (!IsFixedAngle)
         this.AngularVelocity -= this.World.DeltaTime * torque * mult;
+
+      this.Force = VoltVector2.zero;
+      this.Torque = Fix64.Zero;
     }
 
     internal void IntegrateVelocity()
@@ -866,7 +869,8 @@ namespace Volatile
         this.Angle += this.BiasRotation;
       this.Facing = VoltMath.Polar(this.Angle);
       
-      this.ClearForces();
+      this.BiasVelocity = VoltVector2.zero;
+      this.BiasRotation = Fix64.Zero;
       OnPositionUpdated();
     }
 

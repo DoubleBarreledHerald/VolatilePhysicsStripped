@@ -381,13 +381,13 @@ namespace Volatile
                 body.CallWakeUp();
             }
 
-            //Apply forces
+            //Apply Bias
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
                 if (body.IsStatic)
                     continue;
-                    
+                
                 body.IntegrateBias();
             }
 
