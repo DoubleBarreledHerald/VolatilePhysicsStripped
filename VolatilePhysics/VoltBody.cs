@@ -20,6 +20,7 @@
 
 using FixMath.NET;
 using System;
+using System.Collections.Generic;
 
 #if UNITY
 using UnityEngine;
@@ -243,25 +244,38 @@ namespace Volatile
     /// </summary>
     public VoltVector2 Gravity { get; set; }
 
-    public delegate void CollisionEventHandler(VoltBody bodyA, VoltBody bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
+    public delegate void CollisionEventHandler(VoltBody bodyA, VoltBody bodyB);
     public event CollisionEventHandler OnCollision;
 
-    public delegate void TriggerEventHandler(VoltBody bodyA, VoltBody bodyB, VoltVector2 position, VoltVector2 normal, Fix64 penetration);
+    public delegate void TriggerEventHandler(VoltBody bodyA, VoltBody bodyB);
     public event TriggerEventHandler OnTrigger;
 
-    internal void OnCollide(VoltBody collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
+    HashSet<VoltBody> collisions = new HashSet<VoltBody>();
+    HashSet<VoltBody> triggers = new HashSet<VoltBody>();
+
+    internal void AddCollision(VoltBody collision)
     {
-      if (IsTrigger)
-      {
-        OnTriggered(collision, position, normal, penetration);
-      } else {
-        OnCollision?.Invoke(this, collision, position, normal, penetration);
-      }
+      collisions.Add(collision);
     }
 
-    internal void OnTriggered(VoltBody collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
+    internal void AddTrigger(VoltBody trigger)
     {
-      OnTrigger?.Invoke(this, collision, position, normal, penetration);
+      triggers.Add(trigger);
+    }
+
+    internal void HandleCollisions()
+    {
+      foreach (VoltBody collision in collisions)
+      {
+        OnCollision?.Invoke(this, collision);
+      }
+      collisions.Clear();
+
+      foreach (VoltBody trigger in triggers)
+      {
+        OnTrigger?.Invoke(this, trigger);
+      }
+      triggers.Clear();
     }
 
     public Delegate[] GetCollisionDelegates()

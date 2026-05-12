@@ -375,10 +375,12 @@ namespace Volatile
                     this.manifolds[i].Solve();
 
             //wake up
+            //OnCollide
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
                 body.CallWakeUp();
+                body.HandleCollisions();
             }
 
             //Apply Bias

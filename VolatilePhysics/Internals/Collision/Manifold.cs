@@ -77,11 +77,8 @@ namespace Volatile
 
       Fix64 absPenetration = Fix64.Abs(penetration);
 
-      ShapeA.OnCollide(ShapeB, position, normal, absPenetration);
-      ShapeB.OnCollide(ShapeA, position, -normal, absPenetration);
-
-      if (!ShapeA.IsTrigger) ShapeA.Body.OnCollide(ShapeB.Body, position, normal, absPenetration);
-      if (!ShapeB.IsTrigger) ShapeB.Body.OnCollide(ShapeA.Body, position, -normal, absPenetration);
+      HandleCollision(ShapeA, ShapeB, position, normal, absPenetration);
+      HandleCollision(ShapeB, ShapeA, position, normal, absPenetration);
 
       this.contacts[this.used] =
         this.world.AllocateContact().Assign(
@@ -91,6 +88,26 @@ namespace Volatile
       this.used++;
 
       return true;
+    }
+
+    private void HandleCollision(
+      VoltShape shape1,
+      VoltShape shape2,
+      VoltVector2 position,
+      VoltVector2 normal,
+      Fix64 absPenetration)
+    {
+      if (shape2.IsTrigger && shape1.IgnoreTriggers)
+        return;
+
+      shape1.OnCollide(shape2, position, normal, absPenetration);
+
+      if (shape1.IsTrigger)
+      {
+        shape1.Body.AddTrigger(shape2.Body);
+      } else {
+        shape1.Body.AddCollision(shape2.Body);
+      }
     }
 
     internal void PreStep()

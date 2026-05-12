@@ -57,9 +57,19 @@ namespace Volatile
     internal bool IsInitialized { get; set; }
 #endif
 
-    public bool IsTrigger { get; set; } = false;
+    private bool _isTrigger = false;
+    public bool IsTrigger {
+      set { _isTrigger = value; }
+      get{ return _isTrigger || Body.IsTrigger; }
+    }
 
     public bool IgnoreRaycasts { get; set; } = false;
+
+    private bool _ignoreTriggers = false;
+    public bool IgnoreTriggers {
+      set { _ignoreTriggers = value; }
+      get{ return _ignoreTriggers || Body.IgnoreTriggers; }
+    }
 
     public abstract ShapeType Type { get; }
 
@@ -103,7 +113,6 @@ namespace Volatile
     internal void OnCollide(VoltShape collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
       OnCollision?.Invoke(this, collision, position, normal, penetration);
-      Body.OnTriggered(collision.Body, position, normal, penetration);
     }
 
     public Delegate[] GetCollisionDelegates()
