@@ -60,6 +60,7 @@ Wishlist:
 - Body Sleep
 - Joints and constraints
 - Static/Dynamic body type variable setting
+- VoltWorld QueryPolygon
 
 Not Supported:
 - ~~Determinism (Volatile uses floating-point values, and is not deterministic across hardware configurations)~~
