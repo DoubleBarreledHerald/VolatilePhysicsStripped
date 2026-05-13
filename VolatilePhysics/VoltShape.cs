@@ -155,11 +155,11 @@ namespace Volatile
     /// Checks if a circle overlaps with this shape. 
     /// Begins with an AABB check.
     /// </summary>
-    internal bool QueryCircle(VoltVector2 bodySpaceOrigin, Fix64 radius)
+    internal bool QueryCircle(VoltVector2 bodySpaceOrigin, VoltVector2 origin, Fix64 radius)
     {
       // Queries and casts on shapes are always done in body space
       if (this.bodySpaceAABB.QueryCircleApprox(bodySpaceOrigin, radius))
-        return this.ShapeQueryCircle(bodySpaceOrigin, radius);
+        return this.ShapeQueryCircle(bodySpaceOrigin, origin, radius);
       return false;
     }
 
@@ -240,6 +240,7 @@ namespace Volatile
 
     protected abstract bool ShapeQueryCircle(
       VoltVector2 bodySpaceOrigin,
+      VoltVector2 worldSpaceOrigin,
       Fix64 radius);
 
     protected abstract bool ShapeRayCast(

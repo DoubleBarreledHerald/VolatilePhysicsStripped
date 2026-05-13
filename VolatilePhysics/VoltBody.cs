@@ -455,7 +455,7 @@ namespace Volatile
       // Actual query on shapes done in body space
       VoltVector2 bodySpaceOrigin = WorldToBodyPoint(origin);
       for (int i = 0; i < this.shapeCount; i++)
-        if (this.shapes[i].QueryCircle(bodySpaceOrigin, radius))
+        if (this.shapes[i].QueryCircle(bodySpaceOrigin, origin, radius))
           return true;
       return false;
     }

@@ -113,6 +113,7 @@ namespace Volatile
 
     protected override bool ShapeQueryCircle(
       VoltVector2 bodySpaceOrigin, 
+      VoltVector2 worldSpaceOrigin,
       Fix64 radius)
     {
       return 

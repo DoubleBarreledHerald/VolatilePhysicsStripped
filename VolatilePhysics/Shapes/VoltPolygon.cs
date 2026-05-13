@@ -201,13 +201,14 @@ namespace Volatile
 
     protected override bool ShapeQueryCircle(
       VoltVector2 bodySpaceOrigin,
+      VoltVector2 worldSpaceOrigin,
       Fix64 radius)
     {
       // Get the axis on the polygon closest to the circle's origin
       Fix64 penetration;
       int foundIndex =
         Collision.FindAxisMaxPenetration(
-          bodySpaceOrigin,
+          worldSpaceOrigin,
           radius,
           this,
           out penetration);
