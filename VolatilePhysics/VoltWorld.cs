@@ -487,7 +487,6 @@ namespace Volatile
           VoltAABB aabb,
           VoltBodyFilter filter = null)
         {
-            Console.WriteLine("Checking AABB: " + aabb.Center + "|" + aabb.Width + ":" + aabb.Height);
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
