@@ -190,6 +190,7 @@ namespace Volatile
     protected override bool ShapeQueryPoint(
       VoltVector2 bodySpacePoint)
     {
+      if (!IsEnabled) return false;
       for (int i = 0; i < this.countBody; i++)
       {
         Axis axis = this.bodyAxes[i];
@@ -204,6 +205,7 @@ namespace Volatile
       VoltVector2 worldSpaceOrigin,
       Fix64 radius)
     {
+      if (!IsEnabled) return false;
       // Get the axis on the polygon closest to the circle's origin
       Fix64 penetration;
       int foundIndex =
@@ -235,6 +237,7 @@ namespace Volatile
       ref VoltRayCast bodySpaceRay,
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       int foundIndex = -1;
       Fix64 inner = Fix64.MaxValue;
       Fix64 outer = Fix64.Zero;
@@ -310,6 +313,7 @@ namespace Volatile
       Fix64 radius,
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       bool checkVertices =
         this.CircleCastVertices(
           ref bodySpaceRay,
@@ -351,6 +355,7 @@ namespace Volatile
     internal bool ContainsPoint(
       VoltVector2 worldSpacePoint)
     {
+      if (!IsEnabled) return false;
       for (int i = 0; i < this.countWorld; i++)
       {
         Axis axis = this.worldAxes[i];
@@ -367,6 +372,7 @@ namespace Volatile
       VoltVector2 worldSpacePoint,
       VoltVector2 worldSpaceNormal)
     {
+      if (!IsEnabled) return false;
       foreach (Axis axis in this.worldAxes)
         if (VoltVector2.Dot(axis.Normal, worldSpaceNormal) >= Fix64.Zero &&
             VoltVector2.Dot(axis.Normal, worldSpacePoint) > axis.Width)
@@ -433,6 +439,7 @@ namespace Volatile
       Fix64 radius,
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       int foundIndex = -1;
       bool couldBeContained = true;
 
@@ -517,6 +524,7 @@ namespace Volatile
       Fix64 radius,
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       Fix64 sqrRadius = radius * radius;
       bool castHit = false;
 

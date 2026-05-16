@@ -104,6 +104,7 @@ namespace Volatile
     protected override bool ShapeQueryPoint(
       VoltVector2 bodySpacePoint)
     {
+      if (!IsEnabled) return false;
       return 
         Collision.TestPointCircleSimple(
           this.bodySpaceOrigin,
@@ -116,6 +117,7 @@ namespace Volatile
       VoltVector2 worldSpaceOrigin,
       Fix64 radius)
     {
+      if (!IsEnabled) return false;
       return 
         Collision.TestCircleCircleSimple(
           this.bodySpaceOrigin,
@@ -128,6 +130,7 @@ namespace Volatile
       ref VoltRayCast bodySpaceRay, 
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       return Collision.CircleRayCast(
         this,
         this.bodySpaceOrigin,
@@ -141,6 +144,7 @@ namespace Volatile
       Fix64 radius,
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       Fix64 totalRadius = this.radius + radius;
       return Collision.CircleRayCast(
         this,

@@ -57,6 +57,8 @@ namespace Volatile
     internal bool IsInitialized { get; set; }
 #endif
 
+    public bool IsEnabled = true;
+
     private bool _isTrigger = false;
     public bool IsTrigger {
       set { _isTrigger = value; }
@@ -112,6 +114,7 @@ namespace Volatile
 
     internal void OnCollide(VoltShape collision, VoltVector2 position, VoltVector2 normal, Fix64 penetration)
     {
+      if (!IsEnabled) return;
       OnCollision?.Invoke(this, collision, position, normal, penetration);
     }
 
@@ -145,6 +148,7 @@ namespace Volatile
     /// </summary>
     internal bool QueryPoint(VoltVector2 bodySpacePoint)
     {
+      if (!IsEnabled) return false;
       // Queries and casts on shapes are always done in body space
       if (this.bodySpaceAABB.QueryPoint(bodySpacePoint))
         return this.ShapeQueryPoint(bodySpacePoint);
@@ -157,6 +161,7 @@ namespace Volatile
     /// </summary>
     internal bool QueryCircle(VoltVector2 bodySpaceOrigin, VoltVector2 origin, Fix64 radius)
     {
+      if (!IsEnabled) return false;
       // Queries and casts on shapes are always done in body space
       if (this.bodySpaceAABB.QueryCircleApprox(bodySpaceOrigin, radius))
         return this.ShapeQueryCircle(bodySpaceOrigin, origin, radius);
@@ -171,6 +176,7 @@ namespace Volatile
       ref VoltRayCast bodySpaceRay, 
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       if (IgnoreRaycasts == true) return false;
       // Queries and casts on shapes are always done in body space
       if (this.bodySpaceAABB.RayCast(ref bodySpaceRay))
@@ -187,6 +193,7 @@ namespace Volatile
       Fix64 radius, 
       ref VoltRayResult result)
     {
+      if (!IsEnabled) return false;
       // Queries and casts on shapes are always done in body space
       if (this.bodySpaceAABB.CircleCastApprox(ref bodySpaceRay, radius))
         return this.ShapeCircleCast(ref bodySpaceRay, radius, ref result);

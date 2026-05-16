@@ -46,6 +46,7 @@ namespace Volatile
       VoltShape sa, 
       VoltShape sb)
     {
+      if (!sa.IsEnabled || !sb.IsEnabled) return null;
       Test test = Collision.tests[(int)sa.Type, (int)sb.Type];
       return test(world, sa, sb);
     }
