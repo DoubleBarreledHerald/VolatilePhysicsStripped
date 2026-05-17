@@ -21,6 +21,7 @@
 using FixMath.NET;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 #if UNITY
 using UnityEngine;
@@ -152,6 +153,22 @@ namespace Volatile
         totalRadius * totalRadius,
         ref bodySpaceRay,
         ref result);
+    }
+
+    protected override bool ShapeQueryAABB(
+      VoltAABB query)
+    {
+      //Quad intersect
+      List<VoltVector2> quadPoints = new List<VoltVector2> { query.BottomLeft, query.BottomRight, query.TopRight, query.TopLeft };
+
+      quadPoints.OrderBy(x => VoltVector2.Distance(x, worldSpaceOrigin));
+
+      foreach (VoltVector2 quadPoint in quadPoints)
+      {
+        if (this.ShapeQueryPoint(quadPoint)) return true;
+      }
+
+      return Collision.TestCircleLineSimple(worldSpaceOrigin, radius, quadPoints[0], quadPoints[1]);
     }
     #endregion
 

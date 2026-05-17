@@ -23,6 +23,7 @@ using UnityEngine;
 #endif
 
 using System;
+using System.Linq;
 using FixMath.NET;
 
 namespace Volatile
@@ -299,7 +300,157 @@ namespace Volatile
 
       return found;
     }
+
+    // REF: https://stackoverflow.com/questions/1119451/how-to-tell-if-a-line-intersects-a-polygon-in-c
+    /// <summary>
+    /// Simple check for the intersection of two lines.
+    /// </summary>
+    internal static bool TestLineLineSimple(VoltVector2 start1, VoltVector2 end1, VoltVector2 start2, VoltVector2 end2, out VoltVector2 intersection)
+    {
+        Fix64 denom = ((end1.x - start1.x) * (end2.y - start2.y)) - ((end1.y - start1.y) * (end2.x - start2.x));
+
+        intersection = VoltVector2.zero;
+
+        //  AB & CD are parallel 
+        if (denom == Fix64.Zero)
+            return false;
+
+        Fix64 numer = ((start1.y - start2.y) * (end2.x - start2.x)) - ((start1.x - start2.x) * (end2.y - start2.y));
+
+        Fix64 r = numer / denom;
+
+        Fix64 numer2 = ((start1.y - start2.y) * (end1.x - start1.x)) - ((start1.x - start2.x) * (end1.y - start1.y));
+
+        Fix64 s = numer2 / denom;
+
+        if (r < Fix64.Zero || r > Fix64.One || s < Fix64.Zero || s > Fix64.One)
+            return false;
+
+        // Find intersection point
+        intersection.x = start1.x + (r * (end1.x - start1.x));
+        intersection.y = start1.y + (r * (end1.y - start1.y));
+
+        return true;
+    }
+
+    /// <summary>
+    /// Simple check for Line AABB intersection.
+    /// </summary>
+    internal static bool TestLineAABBSimple(VoltVector2 start, VoltVector2 end, VoltAABB AABB){
+      if(AABB.TopRight.x < VoltMath.Min(start.x, end.x)){
+          return false;
+      }
+      if(AABB.BottomLeft.x > VoltMath.Max(start.x, end.x)){
+          return false;
+      }
+      if(AABB.TopRight.y < VoltMath.Min(start.y, end.y)){
+          return false;
+      }
+      if(AABB.BottomLeft.y > VoltMath.Max(start.y, end.y)){
+          return false;
+      }
+
+      return true;
+    }
+
+    internal static bool TestLinePolygonSimple(VoltVector2 start, VoltVector2 end, VoltPolygon polygon)
+    {
+      if (!TestLineAABBSimple(start, end, polygon.AABB)) return false;
+
+      //int closestIndex = FindAxisShortestDistance(start, polygon.worldAxes, out _);
+
+      for (int i = 0; i < polygon.worldVertices.Count(); i++)
+      {
+        polygon.GetEdge(i, out VoltVector2 start2, out VoltVector2 end2);
+        if (TestLineLineSimple(start, end, start2, end2, out _)) return true;
+      }
+
+      return false;
+    }
     #endregion
+
+
+    internal static bool TestPolygonPolygonSimple(
+      VoltPolygon polyA,
+      VoltPolygon polyB)
+    {
+      for (int i = 0; i < polyA.countWorld; i++)
+      {
+        VoltVector2 vertex = polyA.worldVertices[i];
+        if (polyB.ContainsPoint(vertex) == true)
+          return true;
+      }
+
+      for (int i = 0; i < polyB.countWorld; i++)
+      {
+        VoltVector2 vertex = polyB.worldVertices[i];
+        if (polyA.ContainsPoint(vertex) == true)
+        {
+          return true;
+        }
+      }
+
+      // Star of david check
+
+      Axis a1, a2;
+      if (Collision.FindMinSepAxis(polyA, polyB, out a1) == false)
+        return false;
+      if (Collision.FindMinSepAxis(polyB, polyA, out a2) == false)
+        return false;
+
+      // We will use poly1's axis, so we may need to swap
+      if (a2.Width > a1.Width)
+      {
+        VoltUtil.Swap(ref polyA, ref polyB);
+        VoltUtil.Swap(ref a1, ref a2);
+      }
+      for (int i = 0; i < polyA.countWorld; i++)
+      {
+        VoltVector2 vertex = polyA.worldVertices[i];
+        if (polyB.ContainsPointPartial(vertex, a1.Normal) == true)
+        {
+          return true;
+        }
+      }
+
+      for (int i = 0; i < polyB.countWorld; i++)
+      {
+        VoltVector2 vertex = polyB.worldVertices[i];
+        if (polyA.ContainsPointPartial(vertex, -a1.Normal) == true)
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    //REF: https://www.csharphelper.com/howtos/howto_line_circle_intersection.html
+    // Find the points of intersection.
+    internal static bool TestCircleLineSimple(
+        VoltVector2 circleOrigin, Fix64 radius,
+        VoltVector2 point1, VoltVector2 point2)
+    {
+        Fix64 dx, dy, A, B, C, det;
+
+        dx = point2.x - point1.x;
+        dy = point2.y - point1.y;
+
+        A = dx * dx + dy * dy;
+        B = (Fix64)2 * (dx * (point1.x - circleOrigin.x) + dy * (point1.y - circleOrigin.y));
+        C = (point1.x - circleOrigin.x) * (point1.x - circleOrigin.x) +
+            ((point1.y - circleOrigin.x) * (point1.y - circleOrigin.x)) -
+            radius * radius;
+
+        det = B * B - (Fix64)4 * A * C;
+        if ((A <= (Fix64)0.0000001) || (det < Fix64.Zero))
+        {
+            // No real solutions.
+            return false;
+        }
+
+        return true;
+    }
 
     #region Helpers
     /// <summary>

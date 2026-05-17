@@ -168,6 +168,13 @@ namespace Volatile
       return false;
     }
 
+    internal bool QueryAABB(VoltAABB worldBounds)
+    {
+      if (!IsEnabled) return false;
+      // Queries and casts on shapes are always done in body space
+      return this.ShapeQueryAABB(worldBounds);
+    }
+
     /// <summary>
     /// Performs a raycast check on this shape. 
     /// Begins with an AABB check.
@@ -249,6 +256,10 @@ namespace Volatile
       VoltVector2 bodySpaceOrigin,
       VoltVector2 worldSpaceOrigin,
       Fix64 radius);
+
+    protected abstract bool ShapeQueryAABB(
+      VoltAABB query
+    );
 
     protected abstract bool ShapeRayCast(
       ref VoltRayCast bodySpaceRay,

@@ -21,6 +21,7 @@
 using FixMath.NET;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 #if UNITY
 using UnityEngine;
@@ -231,6 +232,33 @@ namespace Volatile
       if (d < VoltMath.Cross(axis.Normal, b))
         return Collision.TestPointCircleSimple(b, bodySpaceOrigin, radius);
       return true;
+    }
+
+    protected override bool ShapeQueryAABB(
+      VoltAABB query)
+    {
+      if (!IsEnabled) return false;
+
+      //Fully contained
+      if (worldSpaceAABB.Left > query.Left && worldSpaceAABB.Right < query.Right)
+        return true;
+      if (worldSpaceAABB.Bottom > query.Bottom && worldSpaceAABB.Top < query.Top)
+        return true;
+      
+      //Poly intersect
+      for (int i = 0; i < worldVertices.Count(); i++)
+      {
+        if (query.QueryPoint(worldVertices[i])) return true;
+      }
+      
+      //Quad intersect
+      VoltVector2[] quadPoints = new VoltVector2[] { query.BottomLeft, query.BottomRight, query.TopRight, query.TopLeft };
+      foreach (VoltVector2 quadPoint in quadPoints)
+      {
+        if (this.ContainsPoint(quadPoint)) return true;
+      }
+
+      return false;
     }
 
     protected override bool ShapeRayCast(

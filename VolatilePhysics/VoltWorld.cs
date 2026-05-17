@@ -340,7 +340,7 @@ namespace Volatile
             {
                 VoltBody query = this.bodies[i];
                 //Ignore static bodies
-                if (query.IsStatic)
+                if (query.IsStatic || !query.IsEnabled)
                     continue;
 
                 this.reusableBuffer.Clear();
@@ -496,7 +496,7 @@ namespace Volatile
             {
                 VoltBody body = this.reusableBuffer[i];
                 if (VoltBody.Filter(body, filter))
-                    if (body.QueryAABBOnly(aabb))
+                    if (body.QueryAABB(aabb))
                         this.reusableOutput.Add(body);
             }
 

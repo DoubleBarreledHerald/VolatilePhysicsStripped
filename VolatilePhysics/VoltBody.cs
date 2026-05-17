@@ -415,6 +415,18 @@ namespace Volatile
       return AABB.Intersect(worldBounds);
     }
 
+    internal bool QueryAABB(
+      VoltAABB worldBounds)
+    {
+      if (!QueryAABBOnly(worldBounds)) return false;
+      
+      // Actual query on shapes done in body space
+      for (int i = 0; i < this.shapeCount; i++)
+        if (this.shapes[i].QueryAABB(worldBounds))
+          return true;
+      return false;
+    }
+
     /// <summary>
     /// Checks if a point is contained in this body. 
     /// Begins with AABB checks unless bypassed.
