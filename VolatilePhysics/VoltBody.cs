@@ -682,13 +682,23 @@ namespace Volatile
       if (this == other)
         return false;
 
+      //Trigger bypass
+      if (this.IsTrigger || other.IsTrigger)
+      {
+        if (other.IsTrigger && IgnoreTriggers) return false;
+        return CheckFilter(other);
+      }
+
       //Ignore static-fixed-asleep collisions
       if ((this.IsStatic || this.IsFixed || !this.isAwake) && (other.IsStatic || other.IsFixed || !other.isAwake))
         return false;
 
-      if (IgnoreTriggers && other.IsTrigger)
-        return false;
 
+      return CheckFilter(other);
+    }
+
+    internal bool CheckFilter(VoltBody other)
+    {
       if (this.CollisionFilter != null)
         return this.CollisionFilter.Invoke(this, other);
       return true;
