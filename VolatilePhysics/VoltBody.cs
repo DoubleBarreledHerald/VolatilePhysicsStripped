@@ -172,6 +172,19 @@ namespace Volatile
       this.isAwake = true;
     }
 
+    /// <summary>
+    /// Awakens nearby bodies if they pass this body's collision filter.
+    /// </summary>
+    public void WakeUpNeighbors()
+    {
+      VoltBuffer<VoltBody> neighbors = World.QueryOverlapBody(AABB, CheckCollisionFilter);
+
+      foreach (VoltBody neighbor in neighbors)
+      {
+          neighbor.WakeUp();
+      }
+    }
+
     public bool IsEnabled { get; set; } = true;
 
     public bool IsTrigger { get; set; } = false;
@@ -686,7 +699,7 @@ namespace Volatile
       if (this.IsTrigger || other.IsTrigger)
       {
         if (other.IsTrigger && IgnoreTriggers) return false;
-        return CheckFilter(other);
+        return CheckCollisionFilter(other);
       }
 
       //Ignore static-fixed-asleep collisions
@@ -694,10 +707,10 @@ namespace Volatile
         return false;
 
 
-      return CheckFilter(other);
+      return CheckCollisionFilter(other);
     }
 
-    internal bool CheckFilter(VoltBody other)
+    public bool CheckCollisionFilter(VoltBody other)
     {
       if (this.CollisionFilter != null)
         return this.CollisionFilter.Invoke(this, other);

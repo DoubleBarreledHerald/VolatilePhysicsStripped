@@ -504,6 +504,32 @@ namespace Volatile
         }
 
         /// <summary>
+        /// Finds all bodies intersecting with a given circle.
+        /// 
+        /// Subsequent calls to other Query functions (Point, Circle, Bounds) will
+        /// invalidate the resulting enumeration from this function.
+        /// </summary>
+        public VoltBuffer<VoltBody> QueryOverlapBody(
+          VoltAABB aabb,
+          VoltBodyFilter filter = null)
+        {
+            this.reusableBuffer.Clear();
+            this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
+            this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
+
+            this.reusableOutput.Clear();
+            for (int i = 0; i < this.reusableBuffer.Count; i++)
+            {
+                VoltBody body = this.reusableBuffer[i];
+                if (VoltBody.Filter(body, filter))
+                    if (body.QueryAABBOnly(aabb))
+                        this.reusableOutput.Add(body);
+            }
+
+            return this.reusableOutput;
+        }
+
+        /// <summary>
         /// Performs a raycast on all world bodies.
         /// </summary>
         public bool RayCast(
