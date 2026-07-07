@@ -118,8 +118,6 @@ namespace Volatile
       VoltBody bodyA = manifold.ShapeA.Body;
       VoltBody bodyB = manifold.ShapeB.Body;
 
-      if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
-
       Fix64 elasticity = bodyA.World.Elasticity;
 
       // Calculate relative bias velocity
@@ -210,6 +208,11 @@ namespace Volatile
       Fix64 normalBiasImpulse)
     {
       VoltVector2 impulse = normalBiasImpulse * this.normal;
+
+      impulse = impulse * bodyA.BiasStrength * bodyB.BiasStrength;
+
+      //Near Zero
+      if (VoltMath.CloseToZero(impulse)) return;
       bodyA.ApplyBias(-impulse, this.toA);
       bodyB.ApplyBias(impulse, this.toB);
     }
@@ -222,6 +225,9 @@ namespace Volatile
     {
       VoltVector2 impulseWorld =
         new VoltVector2(normalImpulseMagnitude, tangentImpulseMagnitude);
+
+      if (VoltMath.CloseToZero(impulseWorld)) return;
+
       VoltVector2 impulse = impulseWorld.Rotate(this.normal);
 
       bodyA.ApplyImpulse(-impulse, this.toA);

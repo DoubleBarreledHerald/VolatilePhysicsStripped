@@ -245,6 +245,8 @@ namespace Volatile
     /// </summary>
     public Fix64 AngularDamping { get; set; } = (Fix64)1;
 
+    public Fix64 BiasStrength = (Fix64)1;
+
     public VoltVector2 Force { get; private set; }
     public Fix64 Torque { get; private set; }
     
@@ -735,10 +737,7 @@ namespace Volatile
       if (IsEnabled == false) return;
 
       if (!IsFixedPosition)
-      {
         this.LinearVelocity += j * this.InvMass;
-      }
-
       if (!IsFixedAngle)
         this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
     }

@@ -164,6 +164,15 @@ namespace Volatile
         {
             return (Fix64.One - amount) * value1 + value2 * amount;
         }
+
+        static Fix64 closeZero = (Fix64)1e-16;
+        public static bool CloseToZero(VoltVector2 value, Fix64? epsilonSq = null)
+        {
+            if (epsilonSq == null)
+                epsilonSq = closeZero;
+             
+            return value.LengthSquared() < epsilonSq.GetValueOrDefault();
+        }
         #endregion
     }
 }

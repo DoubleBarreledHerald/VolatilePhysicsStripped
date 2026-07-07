@@ -80,6 +80,11 @@ namespace Volatile
       HandleCollision(ShapeA, ShapeB, position, normal, absPenetration);
       HandleCollision(ShapeB, ShapeA, position, normal, absPenetration);
 
+      //Triggers, no Contact necessary.
+      if (ShapeA.Body.IsTrigger || ShapeB.Body.IsTrigger ||
+        ShapeA.IsTrigger || ShapeB.IsTrigger)
+          return true;
+
       this.contacts[this.used] =
         this.world.AllocateContact().Assign(
           position, 
