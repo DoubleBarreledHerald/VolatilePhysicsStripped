@@ -746,9 +746,9 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (!IsFixedPosition)
-        this.BiasVelocity += j * this.InvMass;
+        this.BiasVelocity += j * this.InvMass * BiasStrength;
       if (!IsFixedAngle)
-        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r);
+        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r) * BiasStrength;
     }
     #endregion
 

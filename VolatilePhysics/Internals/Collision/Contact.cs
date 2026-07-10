@@ -22,6 +22,7 @@
 using UnityEngine;
 #endif
 
+using System;
 using FixMath.NET;
 
 namespace Volatile
@@ -113,6 +114,11 @@ namespace Volatile
         this.cachedTangentImpulse);
     }
 
+    //TODO Correction impulse damping
+    //REF: https://github.com/erincatto/box2d/blob/56edae79f2949d86142b03450d5d60f63bcf5a6f/src/contact_solver.c#L2038
+    //REF: https://gamedev.net/forums/topic/652181-jittering-due-to-gravity-and-restitution/?__cf_chl_f_tk=Bd2geVee7BFoVL6BrZVC23E40qL4KIyzEQ4fnX8Y3fY-1783393022-1.0.1.1-dNz7lT.C2iAaxrhu_uRq32o3gvKFkBxe9c1Pw6Sv5YI
+    //REF: https://github.com/tainicom/Aether.Physics2D/blob/master/Physics2D/Collision/Collision.cs#L841
+    //REF: https://github.com/erincatto/box2d/blob/main/src/manifold.c#L799
     internal void Solve(Manifold manifold)
     {
       VoltBody bodyA = manifold.ShapeA.Body;
@@ -208,8 +214,6 @@ namespace Volatile
       Fix64 normalBiasImpulse)
     {
       VoltVector2 impulse = normalBiasImpulse * this.normal;
-
-      impulse = impulse * bodyA.BiasStrength * bodyB.BiasStrength;
 
       //Near Zero
       if (VoltMath.CloseToZero(impulse)) return;
