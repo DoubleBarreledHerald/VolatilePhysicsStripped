@@ -30,18 +30,18 @@ namespace Volatile
 {
   public static class VoltConfig
   {
-    public static Fix64 ResolveSlop = (Fix64)0.01M;
-    public static Fix64 ResolveRate = (Fix64)0.1M;
     public static Fix64 AreaMassRatio = (Fix64)0.01M;
+    public static Fix64 ResolveSlop = (Fix64)0.1M;
+    public static Fix64 ResolveRate = (Fix64)0.1M;
 
     // Defaults
-    public static readonly Fix64 DEFAULT_DENSITY = Fix64.One;
     public static readonly Fix64 DEFAULT_RESTITUTION = (Fix64)0.5M;
     public static readonly Fix64 DEFAULT_FRICTION = (Fix64)0.8M;
 
+    public static readonly Fix64 DEFAULT_DENSITY = Fix64.One;
     internal static readonly Fix64 DEFAULT_DELTA_TIME = (Fix64)0.02M;
     internal static readonly Fix64 DEFAULT_DAMPING = (Fix64)0.999M;
-    internal const int DEFAULT_ITERATION_COUNT = 20;
+    internal const int DEFAULT_ITERATION_COUNT = 5;
 
     // AABB extension for the dynamic tree
     internal static readonly Fix64 AABB_EXTENSION = (Fix64)0.2M;
