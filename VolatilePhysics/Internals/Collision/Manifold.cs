@@ -75,8 +75,6 @@ namespace Volatile
       if (this.used >= VoltConfig.MAX_CONTACTS)
         return false;
 
-      Console.WriteLine("New Contact: " + position + " VS BODYA: " + ShapeA.Body.Position + " VS BODYB: " + ShapeB.Body.Position);
-
       Fix64 absPenetration = Fix64.Abs(penetration);
 
       HandleCollision(ShapeA, ShapeB, position, normal, absPenetration);

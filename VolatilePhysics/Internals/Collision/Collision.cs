@@ -23,6 +23,7 @@ using UnityEngine;
 #endif
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using FixMath.NET;
 
@@ -142,6 +143,14 @@ namespace Volatile
       VoltPolygon polyA,
       VoltPolygon polyB)
     {
+      return FAST_Polygon_Polygon(world, polyA, polyB);
+    }
+
+    private static Manifold FAST_Polygon_Polygon(
+      VoltWorld world,
+      VoltPolygon polyA,
+      VoltPolygon polyB)
+    {
       Axis a1, a2;
       if (Collision.FindMinSepAxis(polyA, polyB, out a1) == false)
         return null;
@@ -159,6 +168,38 @@ namespace Volatile
       Manifold manifold = 
         world.AllocateManifold().Assign(world, polyA, polyB);
       Collision.FindVerts(polyA, polyB, a1.Normal, a1.Width, manifold);
+      return manifold;
+    }
+
+    private static Manifold SAT_Polygon_Polygon(VoltWorld world,
+      VoltPolygon polyA,
+      VoltPolygon polyB)
+    {
+      Manifold manifold = 
+        world.AllocateManifold().Assign(world, polyA, polyB);
+
+      if (PolyToPolySAT(polyA.worldVertices, polyB.worldVertices,
+      out VoltVector2 normal, out Fix64 penetration,
+      out bool referenceIsA, out int referenceEdgeIndex)) {
+
+        VoltVector2 centerA = FindArithmeticMean(polyA.worldVertices);
+        VoltVector2 centerB = FindArithmeticMean(polyB.worldVertices);
+				// Ensure normal is always pointing A->B
+				// CollisionConstraint expects this because it applies impulse from A->B in normal direction
+				// If the normal does not point A->B, it will pull them towards each other instead of acting repulsive
+				if (VoltVector2.Dot(normal, centerB - centerA) < Fix64.Zero) {
+					normal = -normal;
+				}
+
+				// Determine clipped contact points
+        ClipPolyToPoly(polyA.Body, polyA, polyB.Body, polyB, referenceEdgeIndex, out List<VoltVector2> finalPoints);
+
+        foreach (VoltVector2 voltVector2 in finalPoints)
+        {
+          manifold.AddContact(voltVector2, normal, penetration);
+        }
+      }
+
       return manifold;
     }
     #endregion
@@ -591,6 +632,202 @@ namespace Volatile
           break;
         }
       }
+    }
+
+    public static bool PolyToPolySAT(VoltVector2[] verticesA, VoltVector2[] verticesB, out VoltVector2 normal, out Fix64 penetration, out bool referenceIsA, out int referenceEdgeIndex)
+    {
+      normal = VoltVector2.zero;
+      penetration = Fix64.MaxValue;
+      referenceIsA = true;
+      referenceEdgeIndex = 0;
+
+      //Get Polygon Edge Normals
+      VoltVector2[] normalsA = GetNormals(verticesA);
+      VoltVector2[] normalsB = GetNormals(verticesB);
+
+      Fix64 minSepA = Fix64.MinValue;
+      int minEdgeA = 0;
+      Fix64 minSepB = Fix64.MinValue;
+      int minEdgeB = 0;
+
+      for(int i = 0; i < verticesA.Length; i++)
+      {
+        VoltVector2 va = verticesA[i];
+        VoltVector2 vb = verticesA[(i + 1) % verticesA.Length];
+
+        ProjectVertices(verticesA, normalsA[i], out Fix64 minA, out Fix64 maxA);
+        ProjectVertices(verticesB, normalsA[i], out Fix64 minB, out Fix64 maxB);
+
+        //No collision
+        if(minA >= maxB || minB >= maxA)
+          return false;
+        
+        Fix64 seperation = minB - maxA;
+        if (seperation > minSepA) {
+          minSepA = seperation;
+          minEdgeA = i;
+        }
+      }
+
+      for (int i = 0; i < verticesB.Length; i++)
+      {
+        VoltVector2 va = verticesB[i];
+        VoltVector2 vb = verticesB[(i + 1) % verticesB.Length];
+
+        ProjectVertices(verticesA, normalsB[i], out Fix64 minA, out Fix64 maxA);
+        ProjectVertices(verticesB, normalsB[i], out Fix64 minB, out Fix64 maxB);
+
+        //No collision
+        if (minA >= maxB || minB >= maxA)
+          return false;
+
+        Fix64 seperation = minA - maxB;
+        if (seperation > minSepB) {
+          minSepB = seperation;
+          minEdgeB = i;
+        }
+      }
+
+      referenceEdgeIndex = minEdgeA;
+      normal = normalsA[referenceEdgeIndex];
+
+      if (minSepB > minSepA)
+      {
+        referenceIsA = false;
+        referenceEdgeIndex = minEdgeB;
+        normal = -normalsB[referenceEdgeIndex];
+      }
+
+      return true;
+    }
+
+    private static VoltVector2 FindArithmeticMean(VoltVector2[] vertices)
+    {
+      Fix64 sumX = Fix64.Zero;
+      Fix64 sumY = Fix64.Zero;
+
+      for(int i = 0; i < vertices.Length; i++)
+      {
+        VoltVector2 v = vertices[i];
+        sumX += v.x;
+        sumY += v.y;
+      }
+
+      return new VoltVector2(sumX / (Fix64)vertices.Length, sumY / (Fix64)vertices.Length);
+    }
+
+    private static void ProjectVertices(VoltVector2[] vertices, VoltVector2 axis, out Fix64 min, out Fix64 max)
+    {
+      min = Fix64.MaxValue;
+      max = Fix64.MinValue;
+
+      for(int i = 0; i < vertices.Length; i++)
+      {
+        VoltVector2 v = vertices[i];
+        Fix64 proj = VoltVector2.Dot(v, axis);
+
+        if(proj < min) { min = proj; }
+        if(proj > max) { max = proj; }
+      }
+    }
+
+    private static void ClipPolyToPoly(
+      VoltBody referenceBody, VoltPolygon referencePoly,
+      VoltBody incidentObject, VoltPolygon incidentPoly,
+      int referenceEdgeIndex,
+      out List<VoltVector2> finalPoints
+      )
+    {
+      finalPoints = new List<VoltVector2>();
+      // Generate contact points with reference object/shape and incident object/shape
+      VoltVector2[] referenceVerts = referencePoly.worldVertices;
+      VoltVector2[] incidentVerts = incidentPoly.worldVertices;
+      VoltVector2 va = referenceVerts[referenceEdgeIndex];
+      VoltVector2 vb = referenceVerts[(referenceEdgeIndex + 1) % referenceVerts.Count()];
+      VoltVector2 edge = vb - va;
+      VoltVector2 axis = new VoltVector2(-edge.y, edge.x);
+      VoltVector2 referenceNormal = axis.normalized;
+      VoltVector2[] incNormals = GetNormals(incidentPoly.worldVertices);
+
+      VoltVector2 a1 = referenceVerts[referenceEdgeIndex];
+      VoltVector2 a2 = referenceVerts[(referenceEdgeIndex + 1) % referenceVerts.Length];
+      VoltVector2 n = referenceNormal;
+
+      // Incident edge selection: edge with normal pointing most opposite to n
+      Fix64 lowestDot = Fix64.MaxValue;
+      int incidentIndex = 0;
+      for (int i = 0; i < incNormals.Length; i++)
+      {
+        Fix64 dot = VoltVector2.Dot(n, incNormals[i]);
+        if (dot < lowestDot) {
+          lowestDot = dot;
+          incidentIndex = i;
+        }
+      }
+      VoltVector2 b2 = incidentVerts[incidentIndex];
+      VoltVector2 b1 = incidentVerts[(incidentIndex + 1) % incidentVerts.Length];
+
+      // Clip to start and end faces. Tangents on ends of reference edge. |-----|
+      VoltVector2 refTangent = (a2 - a1).normalized;
+
+      List<VoltVector2> clippedPoints =
+        ClipLineSegmentToLine(b1, b2, -refTangent, a1);
+      
+      if (clippedPoints.Count == 0) return;
+
+      clippedPoints =
+        ClipLineSegmentToLine(clippedPoints[0], clippedPoints[1],
+          refTangent, a2);
+
+      // Keep points that are behind the reference face, plus speculative slop like Box2D
+      finalPoints = clippedPoints.FindAll(
+        v => VoltVector2.Dot(n, v - a1) <= VoltConfig.ResolveSlop);
+
+      //TODO Finish after contact constraints
+		  /* // Box2D style feature IDs: combine object/shape IDs with vertex indices
+      int i11 = referenceEdgeIndex; // ref edge start vertex
+      int i12 = (i11 + 1) % referenceVerts.Length; // ref edge end vertex
+      int i21 = (incidentIndex + 1) % incidentVerts.Length; // incident edge start vertex (b1)
+      int i22 = incidentIndex;
+      var prefix =
+        ((referenceBody.ID & 0xFF) << 24) |
+        ((incidentObject.ID & 0xFF) << 16) |
+        ((referenceBody.ID)) */
+    }
+
+    private static List<VoltVector2> ClipLineSegmentToLine(VoltVector2 p1, VoltVector2 p2, VoltVector2 normal, VoltVector2 offset) {
+      List<VoltVector2> clippedPoints = new List<VoltVector2>();
+      Fix64 distance0 = VoltVector2.Dot(p1 - offset, normal);
+      Fix64 distance1 = VoltVector2.Dot(p2 - offset, normal);
+      // If the points are behind the plane, don't clip
+      if (distance0 <= Fix64.Zero) clippedPoints.Add(p1);
+      if (distance1 <= Fix64.Zero) clippedPoints.Add(p2);
+      // If one is in front of the plane, have to clip it to the intersection point
+      // clippedPoints.length < 2 for edge case where 1 point is exactly on the plane
+      if (Fix64.Sign(distance0) != Fix64.Sign(distance1) &&
+          clippedPoints.Count < 2) {
+        Fix64 pctAcross = distance1 / (distance1 - distance0);
+        VoltVector2 intersectionPt = p2 + ((p1 - p2) * pctAcross);
+        clippedPoints.Add(intersectionPt);
+      }
+      return clippedPoints; // Returns 2 or 0 points
+    }
+
+    private static VoltVector2[] GetNormals(VoltVector2[] vertices)
+    {
+      int bLength = vertices.Length;
+      VoltVector2[] normals = new VoltVector2[bLength];
+      for(int i = 0; i < bLength; i++)
+      {
+        VoltVector2 va = vertices[i];
+        VoltVector2 vb = vertices[(i + 1) % bLength];
+        
+        VoltVector2 edge = vb - va;
+        VoltVector2 axis = new VoltVector2(-edge.y, edge.x);
+        axis = axis.normalized;
+        normals[i] = axis;
+      }
+      return normals;
     }
     #endregion
   }
