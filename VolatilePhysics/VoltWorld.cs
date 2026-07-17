@@ -605,6 +605,14 @@ namespace Volatile
             body.AssignWorld(null, -1);
         }
 
+        private static int shapeCount = 0;
+        public static int AssignShape(VoltShape shape)
+        {
+            if (shape.ID >= 0) return shape.ID;
+            shapeCount++;
+            return shapeCount;
+        }
+
         /// <summary>
         /// Identifies collisions for a single body. Does not keep track of 
         /// symmetrical duplicates (they could be counted twice).

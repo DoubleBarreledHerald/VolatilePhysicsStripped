@@ -129,9 +129,11 @@ namespace Volatile
     }
 
     #region Body-Related
-    internal void AssignBody(VoltBody body)
+    public int ID { get; private set; } = -1;
+    internal void AssignBody(VoltBody body, int ID)
     {
       this.Body = body;
+      this.ID = ID;
       this.ComputeMetrics();
     }
 

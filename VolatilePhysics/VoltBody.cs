@@ -598,7 +598,7 @@ namespace Volatile
       for (int i = 0; i < this.shapeCount; i++)
       {
         VoltShape shape = this.shapes[i];
-        shape.AssignBody(this);
+        shape.AssignBody(this, VoltWorld.AssignShape(shape));
         this.Area += shape.Area;
       }
 
