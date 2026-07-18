@@ -55,5 +55,13 @@ namespace Volatile
     // The minimum mass a dynamic object can have before it is
     // converted to a static object
     internal static readonly Fix64 MINIMUM_DYNAMIC_MASS = (Fix64)0.00001M;
+
+    // The type of collision solver used to generate Manifolds
+    public static SolverType SOLVER_TYPE = SolverType.Fast;
+    public enum SolverType
+    {
+      Fast,
+      SAT
+    }
   }
 }

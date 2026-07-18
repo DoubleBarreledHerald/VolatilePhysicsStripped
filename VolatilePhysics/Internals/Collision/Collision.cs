@@ -145,7 +145,15 @@ namespace Volatile
       VoltPolygon polyA,
       VoltPolygon polyB)
     {
-      return FAST_Polygon_Polygon(world, polyA, polyB);
+      switch (VoltConfig.SOLVER_TYPE)
+      {
+        case VoltConfig.SolverType.Fast:
+          return FAST_Polygon_Polygon(world, polyA, polyB);
+        case VoltConfig.SolverType.SAT:
+          return SAT_Polygon_Polygon(world, polyA, polyB);
+        default:
+          return FAST_Polygon_Polygon(world, polyA, polyB);
+      }
     }
 
     private static Manifold FAST_Polygon_Polygon(
