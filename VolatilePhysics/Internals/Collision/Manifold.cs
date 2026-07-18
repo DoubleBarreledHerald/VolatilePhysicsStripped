@@ -72,6 +72,8 @@ namespace Volatile
       VoltVector2 normal,
       Fix64 penetration)
     {
+      VoltWorld.contactPoints.Add(position);
+
       if (this.used >= VoltConfig.MAX_CONTACTS)
         return false;
 
