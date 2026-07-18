@@ -194,7 +194,14 @@ namespace Volatile
 				}
 
 				// Determine clipped contact points
-        ClipPolyToPoly(polyA.Body, polyA, polyB.Body, polyB, referenceEdgeIndex, out List<VoltVector2> finalPoints);
+        List<VoltVector2> finalPoints;
+        if (referenceIsA)
+        {
+          ClipPolyToPoly(polyA.Body, polyA, polyB.Body, polyB, referenceEdgeIndex, out finalPoints);
+        } else
+        {
+          ClipPolyToPoly(polyB.Body, polyB, polyA.Body, polyA, referenceEdgeIndex, out finalPoints);
+        }
 
         foreach (VoltVector2 voltVector2 in finalPoints)
         {
@@ -744,23 +751,22 @@ namespace Volatile
       // Generate contact points with reference object/shape and incident object/shape
       VoltVector2[] referenceVerts = referencePoly.worldVertices;
       VoltVector2[] incidentVerts = incidentPoly.worldVertices;
-      VoltVector2 va = referenceVerts[referenceEdgeIndex];
-      VoltVector2 vb = referenceVerts[(referenceEdgeIndex + 1) % referenceVerts.Count()];
-      VoltVector2 edge = vb - va;
+      //Normals
+      VoltVector2 a1 = referenceVerts[referenceEdgeIndex];
+      VoltVector2 a2 = referenceVerts[(referenceEdgeIndex + 1) % referenceVerts.Count()];
+      VoltVector2 edge = a2 - a1;
       VoltVector2 axis = new VoltVector2(-edge.y, edge.x);
       VoltVector2 referenceNormal = axis.normalized;
-      VoltVector2[] incNormals = GetNormals(incidentPoly.worldVertices);
+      VoltVector2[] incidentNormals = GetNormals(incidentVerts);
 
-      VoltVector2 a1 = referenceVerts[referenceEdgeIndex];
-      VoltVector2 a2 = referenceVerts[(referenceEdgeIndex + 1) % referenceVerts.Length];
       VoltVector2 n = referenceNormal;
 
       // Incident edge selection: edge with normal pointing most opposite to n
       Fix64 lowestDot = Fix64.MaxValue;
       int incidentIndex = 0;
-      for (int i = 0; i < incNormals.Length; i++)
+      for (int i = 0; i < incidentNormals.Length; i++)
       {
-        Fix64 dot = VoltVector2.Dot(n, incNormals[i]);
+        Fix64 dot = VoltVector2.Dot(n, incidentNormals[i]);
         if (dot < lowestDot) {
           lowestDot = dot;
           incidentIndex = i;
