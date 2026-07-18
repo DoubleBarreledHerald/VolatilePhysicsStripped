@@ -707,6 +707,8 @@ namespace Volatile
         normal = -normalsB[referenceEdgeIndex];
       }
 
+      penetration = referenceIsA ? -minSepA : -minSepB;
+
       return true;
     }
 
