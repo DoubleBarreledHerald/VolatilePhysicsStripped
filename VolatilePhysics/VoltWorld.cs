@@ -294,6 +294,8 @@ namespace Volatile
         /// </summary>
         public void Update()
         {
+            contactPoints.Clear();
+
             //Check dynamic order
             if (RequireDynamicSort)
             {
@@ -612,6 +614,8 @@ namespace Volatile
             shapeCount++;
             return shapeCount;
         }
+
+        public static List<VoltVector2> contactPoints = new List<VoltVector2>();
 
         /// <summary>
         /// Identifies collisions for a single body. Does not keep track of 
