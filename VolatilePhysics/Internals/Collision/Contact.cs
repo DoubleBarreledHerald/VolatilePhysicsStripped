@@ -42,23 +42,24 @@ namespace Volatile
     }
     #endregion
 
-    private VoltVector2 position;
+    private VoltVector2 worldPoint;
     private VoltVector2 normal;
     private Fix64 penetration;
 
-    private VoltVector2 toA;
-    private VoltVector2 toB;
-    private VoltVector2 toALeft;
-    private VoltVector2 toBLeft;
+    private VoltVector2 localA;
+    private VoltVector2 localB;
+    private VoltVector2 worldA;
+    private VoltVector2 worldB;
+    private VoltVector2 rA;
+    private VoltVector2 rB;
+    private VoltVector2 tangent;
+    private Fix64 relativeVelocity;
 
-    private Fix64 nMass;
-    private Fix64 tMass;
-    private Fix64 restitution;
-    private Fix64 bias;
-    private Fix64 jBias;
+    private Fix64 invMassA;
+    private Fix64 invMassB;
+    private Fix64 invIA;
+    private Fix64 invIB;
 
-    private Fix64 cachedNormalImpulse;
-    private Fix64 cachedTangentImpulse;
 
     public Contact()
     {
@@ -66,13 +67,13 @@ namespace Volatile
     }
 
     internal Contact Assign(
-      VoltVector2 position,
+      VoltVector2 worldPoint,
       VoltVector2 normal,
       Fix64 penetration)
     {
       this.Reset();
 
-      this.position = position;
+      this.worldPoint = worldPoint;
       this.normal = normal;
       this.penetration = penetration;
 
@@ -86,32 +87,24 @@ namespace Volatile
 
       if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
 
-      this.toA = this.position - bodyA.Position;
-      this.toB = this.position - bodyB.Position;
-      this.toALeft = this.toA.Left();
-      this.toBLeft = this.toB.Left();
+      localA = worldPoint - bodyA.Position; localA.Rotate(-bodyA.Angle);
+      localB = worldPoint - bodyB.Position; localB.Rotate(-bodyB.Angle);
+      worldA = localA; worldA.Rotate(bodyA.Angle); worldA += bodyA.Position;
+      worldB = localB; worldB.Rotate(bodyB.Angle); worldB += bodyA.Position;
+      rA = worldA - bodyA.Position;
+      rB = worldB - bodyB.Position;
+      tangent = new VoltVector2(normal.y, -normal.x);
 
-      this.nMass = Fix64.One / this.KScalar(bodyA, bodyB, this.normal);
-      this.tMass = Fix64.One / this.KScalar(bodyA, bodyB, this.normal.Left());
+      invMassA = bodyA.InvMass;
+      invMassB = bodyB.InvMass;
+      invIA = bodyA.InvInertia;
+      invIB = bodyB.InvInertia;
 
-      this.bias = Contact.BiasDist(penetration);
-      this.jBias = Fix64.Zero;
-      this.restitution =
-        manifold.Restitution *
-        VoltVector2.Dot(
-          this.normal,
-          this.RelativeVelocity(bodyA, bodyB));
-    }
-
-    internal void SolveCached(Manifold manifold)
-    {
-      if (manifold.ShapeA.Body.IsTrigger || manifold.ShapeB.Body.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
-
-      this.ApplyContactImpulse(
-        manifold.ShapeA.Body,
-        manifold.ShapeB.Body,
-        this.cachedNormalImpulse,
-        this.cachedTangentImpulse);
+		  // Store relative velocity BEFORE warm starting for restitution
+      VoltVector2 velA = bodyA.LinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
+      VoltVector2 velB = bodyB.LinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
+      VoltVector2 relVel = velB - velA;
+      relativeVelocity = VoltVector2.Dot(normal, relVel);
     }
 
     internal void Solve(Manifold manifold)
@@ -119,118 +112,112 @@ namespace Volatile
       VoltBody bodyA = manifold.ShapeA.Body;
       VoltBody bodyB = manifold.ShapeB.Body;
 
-      Fix64 elasticity = bodyA.World.Elasticity;
+      //Contact
+      VoltVector2 velA = bodyA.LinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
+      VoltVector2 velB = bodyB.LinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
+      VoltVector2 relVel = velB - velA;
+      Fix64 Cdot = VoltVector2.Dot(normal, relVel);
 
-      // Calculate relative velocity
-      VoltVector2 vr = this.RelativeVelocity(bodyA, bodyB);
-      Fix64 vrn = VoltVector2.Dot(vr, this.normal);
+      Fix64 rnA = VoltMath.Cross(rA, normal);
+      Fix64 rnB = VoltMath.Cross(rB, normal);
+      Fix64 effectiveMass =
+        this.invMassA + this.invMassB + rnA * rnA * this.invIA + rnB * rnB * this.invIB;
+      if (effectiveMass >= (Fix64)0.000001)
+      {
+        Fix64 seperation = VoltMath.Min((Fix64)0, -Fix64.Abs(penetration) + VoltConfig.ResolveSlop);
+        Fix64 velocityBias = (VoltConfig.ResolveRate / bodyA.World.DeltaTime) * seperation;
 
-      // Calculate and clamp the normal impulse
-      Fix64 jn = nMass * (vrn + this.restitution * elasticity);
-      // Calculate and clamp the tangent impulse
-      Fix64 jt = tMass * VoltVector2.Dot(vr, this.normal.Left());
+        Fix64 lamda = -(Cdot + velocityBias) / effectiveMass;
+        if (lamda == (Fix64)0) return;
 
-			AddPositive(ref cachedNormalImpulse, ref jn);
-			AddClamp(ref cachedTangentImpulse, ref jt, manifold.Friction * cachedNormalImpulse);
+        VoltVector2 impulse = normal * lamda;
+        bodyA.ApplyImpulse(-impulse, worldA);
+        bodyB.ApplyImpulse(impulse, worldB);
+      }
 
-			VoltVector2 vb = RelativeBiasVelocity(bodyA, bodyB);
-      // Apply the normal and tangent impulse
-      this.ApplyContactImpulse(bodyA, bodyB, jn, jt);
-
-      //Bias
-			Fix64 jbn  = nMass * (VoltVector2.Dot(vb, this.normal) - bias);
-			AddPositive(ref jBias, ref jbn);
-      ApplyNormalBias(bodyA, bodyB, jbn);
+      //Friction
+      if (manifold.Friction > Fix64.Zero)
+      {
+        Fix64 rtA = VoltMath.Cross(rA, tangent);
+        Fix64 rtB = VoltMath.Cross(rB, tangent);
+        Fix64 effectiveMassTangent = invMassA + invMassB + rtA * rtA * invIA + rtB * rtB * invIB;
+        if (effectiveMassTangent >= VoltConfig.MINIMUM_DYNAMIC_MASS)
+        {
+          Fix64 CTDot = VoltVector2.Dot(tangent, relVel);
+          Fix64 lamda = -CTDot / effectiveMassTangent;
+          VoltVector2 frictionImpulse = tangent * lamda;
+          bodyA.ApplyImpulse(-frictionImpulse, worldA);
+          bodyB.ApplyImpulse(frictionImpulse, worldB);
+        }
+      }
 
       bodyA.CheckWakeUp();
       bodyB.CheckWakeUp();
     }
 
+    internal void SolveRestitution(Manifold manifold)
+    {
+      VoltBody bodyA = manifold.ShapeA.Body;
+      VoltBody bodyB = manifold.ShapeB.Body;
+      // Only apply restitution if:
+      // 1. There's a restitution coefficient > 0
+      // 2. The contact point is new this step (not persisted)
+      // 3. The initial relative velocity was approaching fast enough
+      Fix64 restitutionThreshold = (Fix64)1.0; // Increased threshold
+      
+      if (manifold.Restitution == (Fix64)0) {
+          return;
+      }
+      
+      if (this.relativeVelocity > -restitutionThreshold) {
+          return;
+      }
+
+      Fix64 rnA = VoltMath.Cross(rA, normal);
+      Fix64 rnB = VoltMath.Cross(rB, normal);
+      Fix64 effectiveMass =
+        this.invMassA + this.invMassB + rnA * rnA * this.invIA + rnB * rnB * this.invIB;
+      if (effectiveMass < VoltConfig.MINIMUM_DYNAMIC_MASS) return;
+
+      // Calculate current velocities
+      VoltVector2 velA = bodyA.LinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
+      VoltVector2 velB = bodyB.LinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
+      VoltVector2 relVel = velB - velA;
+      Fix64 vn = VoltVector2.Dot(normal, relVel);
+
+      // Compute restitution impulse
+      // We want the final velocity to be -e * initial velocity
+      // So we need to change from current vn to -e * relativeVelocity
+      // velocity change = -e * relativeVelocity - vn
+      // impulse = mass * velocity change
+      Fix64 impulse = -(vn + manifold.Restitution * this.relativeVelocity) / effectiveMass;
+
+      // Only apply positive impulses (separating)
+      if (impulse > (Fix64)0) {
+          VoltVector2 restitutionImpulse = this.normal * (impulse);
+          bodyA.ApplyImpulse(-restitutionImpulse, this.worldA);
+          bodyB.ApplyImpulse(restitutionImpulse, this.worldB);
+      }
+    }
+
     #region Internals
     private void Reset()
     {
-      this.position = VoltVector2.zero;
+      this.worldPoint = VoltVector2.zero;
       this.normal = VoltVector2.zero;
       this.penetration = Fix64.Zero;
-
-      this.toA = VoltVector2.zero;
-      this.toB = VoltVector2.zero;
-      this.toALeft = VoltVector2.zero;
-      this.toBLeft = VoltVector2.zero;
-
-      this.nMass = Fix64.Zero;
-      this.tMass = Fix64.Zero;
-      this.restitution = Fix64.Zero;
-      this.bias = Fix64.Zero;
-      this.jBias = Fix64.Zero;
-
-      this.cachedNormalImpulse = Fix64.Zero;
-      this.cachedTangentImpulse = Fix64.Zero;
-    }
-
-		internal static void AddPositive (ref Fix64 old, ref Fix64 change) {
-			change = VoltMath.Max(-old, change);
-			old += change;
-		}
-
-		internal static void AddClamp (ref Fix64 old, ref Fix64 change, Fix64 limit) {
-			Fix64 result = VoltMath.Max(-limit, VoltMath.Min(limit, old+change));
-			change = result-old;
-      old = result;
-		}
-
-    private Fix64 KScalar(
-      VoltBody bodyA,
-      VoltBody bodyB,
-      VoltVector2 normal)
-    {
-      Fix64 massSum = bodyA.InvMass + bodyB.InvMass;
-      Fix64 r1cnSqr = VoltMath.Square(VoltMath.Cross(this.toA, normal));
-      Fix64 r2cnSqr = VoltMath.Square(VoltMath.Cross(this.toB, normal));
-      return
-        massSum +
-        bodyA.InvInertia * r1cnSqr +
-        bodyB.InvInertia * r2cnSqr;
-    }
-
-    private VoltVector2 RelativeVelocity(VoltBody bodyA, VoltBody bodyB)
-    {
-      return
-        (bodyA.AngularVelocity * this.toALeft + bodyA.LinearVelocity) -
-        (bodyB.AngularVelocity * this.toBLeft + bodyB.LinearVelocity);
-    }
-
-		private VoltVector2 RelativeBiasVelocity (VoltBody a, VoltBody b) {
-			return (a.BiasRotation * this.toALeft + a.BiasVelocity) -
-				   (b.BiasRotation * this.toBLeft + b.BiasVelocity);
-		}
-
-    private void ApplyContactImpulse(
-      VoltBody bodyA,
-      VoltBody bodyB,
-      Fix64 normalImpulseMagnitude,
-      Fix64 tangentImpulseMagnitude)
-    {
-      VoltVector2 impulseWorld =
-        new VoltVector2(normalImpulseMagnitude, tangentImpulseMagnitude);
-
-      if (VoltMath.CloseToZero(impulseWorld)) return;
-
-      VoltVector2 impulse = impulseWorld.Rotate(this.normal);
-
-      bodyA.ApplyImpulse(-impulse, this.toA);
-      bodyB.ApplyImpulse(impulse, this.toB);
-    }
-
-    
-		private void ApplyNormalBias( 
-      VoltBody bodyA,
-      VoltBody bodyB,
-      Fix64 jbn)
-      {
-      VoltVector2 j = jbn * normal;
-      bodyA.ApplyBias(-j, this.toA);
-      bodyB.ApplyBias(j, this.toB);
+      localA = VoltVector2.zero;
+      localB = VoltVector2.zero;
+      worldA = VoltVector2.zero;
+      worldB = VoltVector2.zero;
+      rA = VoltVector2.zero;
+      rB = VoltVector2.zero;
+      tangent = VoltVector2.zero;
+      relativeVelocity = Fix64.Zero;
+      invMassA = Fix64.Zero;
+      invMassB = Fix64.Zero;
+      invIA = Fix64.Zero;
+      invIB = Fix64.Zero;
     }
     #endregion
   }

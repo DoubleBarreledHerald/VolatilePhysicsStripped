@@ -129,10 +129,10 @@ namespace Volatile
         this.contacts[i].Solve(this);
     }
 
-    internal void SolveCached()
+    internal void SolveRestitution()
     {
       for (int i = 0; i < this.used; i++)
-        this.contacts[i].SolveCached(this);
+        this.contacts[i].SolveRestitution(this);
     }
 
     private void ClearContacts()

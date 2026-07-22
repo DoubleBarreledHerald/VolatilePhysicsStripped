@@ -109,7 +109,6 @@ namespace Volatile
     public bool SleepGravityScaling = true;
 
     //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
-
     private bool CheckSleepy(){
       var speedSquared = this.LinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
       var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
@@ -607,12 +606,6 @@ namespace Volatile
 #endif
     }
 
-    internal void Update()
-    {
-      if (IsEnabled == false) return;
-      this.IntegrateForces();
-    }
-
     internal void AssignWorld(VoltWorld world, int id)
     {
       this.World = world;
@@ -732,14 +725,12 @@ namespace Volatile
       return CanCollide(other);
     }
 
-    internal void ApplyImpulse(VoltVector2 j, VoltVector2 r)
-    {
-      if (IsEnabled == false) return;
+    
+    internal void ApplyImpulse(VoltVector2 impulse, VoltVector2 worldPoint) {
+      VoltVector2 r = worldPoint - (this.Position);
 
-      if (!IsFixedPosition)
-        this.LinearVelocity += j * this.InvMass;
-      if (!IsFixedAngle)
-        this.AngularVelocity -= this.InvInertia * VoltMath.Cross(j, r);
+      this.LinearVelocity = this.LinearVelocity + (impulse * InvMass);
+      this.AngularVelocity -= this.InvInertia * VoltMath.Cross(impulse, r);
     }
 
     internal void ApplyBias(VoltVector2 j, VoltVector2 r)
@@ -803,15 +794,8 @@ namespace Volatile
       this.AABB = new VoltAABB(top, bottom, left, right);
     }
 
-    /// <summary>
-    /// Computes forces and dynamics and applies them to position and angle.
-    /// </summary>
-    public void IntegrateForces()
+    internal void ApplyDamping()
     {
-      if (IsEnabled == false) return;
-
-      ApplyGravity();
-
       // Apply damping
       if (!IsFixedPosition)
       {
@@ -821,15 +805,9 @@ namespace Volatile
       }
       if (!IsFixedAngle)
         this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
-
-      // Calculate total force and torque
-      VoltVector2 totalForce = this.Force * this.InvMass;
-      Fix64 totalTorque = this.Torque * this.InvInertia;
-
-      this.IntegrateForces(totalForce, totalTorque, Fix64.One);
     }
 
-    private void ApplyGravity()
+    internal void ApplyGravity(Fix64 mult)
     {
       if (IsEnabled == false) return;
       if (!this.isAwake) return;
@@ -841,25 +819,10 @@ namespace Volatile
 
       //Apply global gravity
       if (this.IsAffectedByWorldGravity)
-        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime * SleepDelta;
+        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime * SleepDelta * mult;
 
       //Apply personal gravity
-      this.LinearVelocity += Gravity * this.World.DeltaTime * SleepDelta;
-    }
-
-    private void IntegrateForces(
-      VoltVector2 force,
-      Fix64 torque,
-      Fix64 mult)
-    {
-      if (IsEnabled == false) return;
-      if (!IsFixedPosition)
-        this.LinearVelocity += this.World.DeltaTime * force * mult;
-      if (!IsFixedAngle)
-        this.AngularVelocity -= this.World.DeltaTime * torque * mult;
-
-      this.Force = VoltVector2.zero;
-      this.Torque = Fix64.Zero;
+      this.LinearVelocity += Gravity * this.World.DeltaTime * SleepDelta * mult;
     }
 
     internal void IntegrateVelocity()

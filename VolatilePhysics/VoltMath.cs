@@ -99,6 +99,11 @@ namespace Volatile
             return a.x * b.y - a.y * b.x;
         }
 
+        public static VoltVector2 CrossSV(VoltVector2 a, Fix64 b)
+        {
+            return new VoltVector2(-a.y * b, a.x * b);
+        }
+
         public static Fix64 Square(Fix64 a)
         {
             return a * a;

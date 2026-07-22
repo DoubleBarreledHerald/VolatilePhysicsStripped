@@ -302,34 +302,23 @@ namespace Volatile
                 RequireDynamicSort = false;
                 ResortBodies();
             }
-
-            //Apply forces
-            for (int i = 0; i < this.bodies.Count; i++)
-            {
-                VoltBody body = this.bodies[i];
-                if (body.IsStatic)
-                    continue;
-
-                body.IntegrateVelocity();
-            }
-
-            //sleep?
-            for (int i = 0; i < this.bodies.Count; i++)
-            {
-                VoltBody body = this.bodies[i];
-                if (body.IsStatic)
-                    continue;
-
-                body.CallSleep();
-            }
-
-            //Find collisions / intergrate forces
+            //intergrate forces
             for (int i = 0; i < this.bodies.Count; i++)
             {
                 VoltBody body = this.bodies[i];
                 if (body.IsStatic == false)
                 {
-                    body.Update();
+                    body.ApplyGravity((Fix64)1);
+                    body.ApplyDamping();
+                }
+            }
+
+            //Find collisions
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                if (body.IsStatic == false)
+                {
                     this.dynamicBroadphase.UpdateBody(body);
                 } else
                 {
@@ -364,17 +353,33 @@ namespace Volatile
                 this.manifolds[i].PreStep();
 
             this.Elasticity = Fix64.One;
-            for (int j = 0; j < this.IterationCount * 1 / 3; j++)
+            for (int j = 0; j < 1; j++)
                 for (int i = 0; i < this.manifolds.Count; i++)
                     this.manifolds[i].Solve();
 
-            for (int i = 0; i < this.manifolds.Count; i++)
-                this.manifolds[i].SolveCached();
-
-            this.Elasticity = Fix64.Zero;
-            for (int j = 0; j < this.IterationCount * 2 / 3; j++)
+            for (int j = 0; j < 1; j++)
                 for (int i = 0; i < this.manifolds.Count; i++)
-                    this.manifolds[i].Solve();
+                    this.manifolds[i].SolveRestitution();
+
+            //Apply forces
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                if (body.IsStatic)
+                    continue;
+
+                body.IntegrateVelocity();
+            }
+
+            //sleep?
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                if (body.IsStatic)
+                    continue;
+
+                body.CallSleep();
+            }
 
             //wake up
             //OnCollide
@@ -383,16 +388,6 @@ namespace Volatile
                 VoltBody body = this.bodies[i];
                 body.CallWakeUp();
                 body.HandleCollisions();
-            }
-
-            //Apply Bias
-            for (int i = 0; i < this.bodies.Count; i++)
-            {
-                VoltBody body = this.bodies[i];
-                if (body.IsStatic)
-                    continue;
-                
-                body.IntegrateBias();
             }
 
             this.FreeManifolds();
