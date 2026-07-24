@@ -72,15 +72,17 @@ namespace Volatile
       VoltVector2 normal,
       Fix64 penetration)
     {
-      VoltWorld.contactPoints.Add(position);
 
       if (this.used >= VoltConfig.MAX_CONTACTS)
         return false;
 
       Fix64 absPenetration = Fix64.Abs(penetration);
+      absPenetration *= ShapeA.Body.World.WorldScale;
+      VoltVector2 worldPos = position * ShapeA.Body.World.WorldScale;
 
-      HandleCollision(ShapeA, ShapeB, position, normal, absPenetration);
-      HandleCollision(ShapeB, ShapeA, position, normal, absPenetration);
+      VoltWorld.contactPoints.Add(worldPos);
+      HandleCollision(ShapeA, ShapeB, worldPos, normal, absPenetration);
+      HandleCollision(ShapeB, ShapeA, worldPos, normal, absPenetration);
 
       //Triggers, no Contact necessary.
       if (ShapeA.Body.IsTrigger || ShapeB.Body.IsTrigger ||

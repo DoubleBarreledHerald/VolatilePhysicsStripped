@@ -64,6 +64,10 @@ namespace Volatile
         /// </summary>
         public Fix64 DeltaTime { get; set; }
 
+        public Fix64 WorldScale { get { return _worldScale; } set{ _worldScale = value; InvWorldScale = Fix64.One / value;} }
+        private Fix64 _worldScale = Fix64.One;
+        public Fix64 InvWorldScale = Fix64.One;
+
         /// <summary>
         /// Number of iterations when updating the world.
         /// Defaults to Config.DEFAULT_ITERATION_COUNT.
@@ -137,6 +141,8 @@ namespace Volatile
         public VoltPolygon CreatePolygonWorldSpace(
           VoltVector2[] worldVertices, Fix64 density, Fix64 friction, Fix64 restitution)
         {
+            for (int i = 0; i < worldVertices.Count(); i++)
+                worldVertices[i] *= InvWorldScale;
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromWorldVertices(
               worldVertices,
@@ -162,6 +168,8 @@ namespace Volatile
         public VoltPolygon CreatePolygonBodySpace(
           VoltVector2[] bodyVertices, Fix64 density, Fix64 friction, Fix64 restitution)
         {
+            for (int i = 0; i < bodyVertices.Count(); i++)
+                bodyVertices[i] *= InvWorldScale;
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromBodyVertices(
               bodyVertices,
@@ -187,6 +195,8 @@ namespace Volatile
         public VoltCircle CreateCircleWorldSpace(
           VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density, Fix64 friction, Fix64 restitution)
         {
+            worldSpaceOrigin *= InvWorldScale;
+            radius *= InvWorldScale;
             VoltCircle circle = (VoltCircle)this.circlePool.Allocate();
             circle.InitializeFromWorldSpace(
               worldSpaceOrigin,
@@ -302,6 +312,16 @@ namespace Volatile
                 RequireDynamicSort = false;
                 ResortBodies();
             }
+            //Apply forces
+            for (int i = 0; i < this.bodies.Count; i++)
+            {
+                VoltBody body = this.bodies[i];
+                if (body.IsStatic)
+                    continue;
+
+                body.IntegrateVelocity();
+            }
+            
             //intergrate forces
             for (int i = 0; i < this.bodies.Count; i++)
             {
@@ -360,16 +380,6 @@ namespace Volatile
             for (int j = 0; j < 1; j++)
                 for (int i = 0; i < this.manifolds.Count; i++)
                     this.manifolds[i].SolveRestitution();
-
-            //Apply forces
-            for (int i = 0; i < this.bodies.Count; i++)
-            {
-                VoltBody body = this.bodies[i];
-                if (body.IsStatic)
-                    continue;
-
-                body.IntegrateVelocity();
-            }
 
             //sleep?
             for (int i = 0; i < this.bodies.Count; i++)

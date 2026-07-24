@@ -110,7 +110,7 @@ namespace Volatile
 
     //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
     private bool CheckSleepy(){
-      var speedSquared = this.LinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
+      var speedSquared = this.InternalLinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
       var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
 
       // Add to idle time
@@ -196,7 +196,11 @@ namespace Volatile
 
     public bool IsInWorld { get { return this.World != null; } }
 
-    public VoltVector2 Position { get; private set; }
+    public VoltVector2 Position {
+      get { return InternalPosition * World.WorldScale; }
+      set { InternalPosition = value * World.InvWorldScale; }
+    }
+    internal VoltVector2 InternalPosition { get; private set; }
 
     public VoltVector2 Facing { get; private set; }
 
@@ -232,7 +236,12 @@ namespace Volatile
 
     public bool IsFixed { get { return IsFixedAngle && IsFixedPosition; } }
 
-    public VoltVector2 LinearVelocity { get; set; }
+    
+    public VoltVector2 LinearVelocity {
+      get { return InternalLinearVelocity * World.WorldScale; }
+      set { InternalLinearVelocity = value * World.InvWorldScale; }
+    }
+    internal VoltVector2 InternalLinearVelocity { get; set; }
     public Fix64 AngularVelocity { get; set; }
 
     /// <summary>
@@ -379,40 +388,37 @@ namespace Volatile
     public void AddTorque(Fix64 torque)
     {
       if (IsEnabled == false) return;
-      this.Torque += torque;
+      this.AngularVelocity -= torque * World.DeltaTime * InvInertia;
       CheckWakeUp();
     }
 
     public void AddForce(VoltVector2 force)
     {
       if (IsEnabled == false) return;
-      this.Force += force;
+      this.LinearVelocity += force * World.DeltaTime * InvMass;
       CheckWakeUp();
     }
 
     public void AddForce(VoltVector2 force, VoltVector2 point)
     {
       if (IsEnabled == false) return;
-      this.Force += force;
-      this.Torque += VoltMath.Cross(this.Position - point, force);
+      this.LinearVelocity += force * World.DeltaTime * InvMass;
+      this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * World.DeltaTime * InvMass;
       CheckWakeUp();
     }
 
     public void Set(VoltVector2 position, Fix64 radians)
     {
-      this.Position = position;
+      this.InternalPosition = position;
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
       this.OnPositionUpdated();
       CheckWakeUp();
     }
 
+    //TODO REMOVE
     public void SetForce(VoltVector2 force, Fix64 torque, VoltVector2 biasVelocity, Fix64 biasRotation)
     {
-      this.Force = force;
-      this.Torque = torque;
-      this.BiasVelocity = biasVelocity;
-      this.BiasRotation = biasRotation;
       CheckWakeUp();
     }
 
@@ -580,7 +586,7 @@ namespace Volatile
       Fix64 radians,
       VoltShape[] shapesToAdd)
     {
-      this.Position = position;
+      this.InternalPosition = position;
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
 
@@ -631,15 +637,12 @@ namespace Volatile
     /// </summary>
     internal void PartialReset()
     {
-      Position = VoltVector2.zero;
+      InternalPosition = VoltVector2.zero;
       Facing = VoltVector2.zero;
       AABB = new VoltAABB();
 
-      this.LinearVelocity = VoltVector2.zero;
+      this.InternalLinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
-
-      this.Force = VoltVector2.zero;
-      this.Torque = Fix64.Zero;
 
       this.BiasVelocity = VoltVector2.zero;
       this.BiasRotation = Fix64.Zero;
@@ -662,11 +665,8 @@ namespace Volatile
       this.CollisionFilter = null;
 
       this.Angle = Fix64.Zero;
-      this.LinearVelocity = VoltVector2.zero;
+      this.InternalLinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
-
-      this.Force = VoltVector2.zero;
-      this.Torque = Fix64.Zero;
 
       this._mass = null;
       this.collMass = Fix64.Zero;
@@ -677,7 +677,7 @@ namespace Volatile
       this.BiasVelocity = VoltVector2.zero;
       this.BiasRotation = Fix64.Zero;
 
-      Position = VoltVector2.zero;
+      InternalPosition = VoltVector2.zero;
       Facing = VoltVector2.zero;
       AABB = new VoltAABB();
     }
@@ -727,9 +727,9 @@ namespace Volatile
 
     
     internal void ApplyImpulse(VoltVector2 impulse, VoltVector2 worldPoint) {
-      VoltVector2 r = worldPoint - (this.Position);
+      VoltVector2 r = worldPoint - (this.InternalPosition);
 
-      this.LinearVelocity = this.LinearVelocity + (impulse * InvMass);
+      this.InternalLinearVelocity = this.InternalLinearVelocity + (impulse * InvMass);
       this.AngularVelocity -= this.InvInertia * VoltMath.Cross(impulse, r);
     }
 
@@ -799,9 +799,9 @@ namespace Volatile
       // Apply damping
       if (!IsFixedPosition)
       {
-        Fix64 xVelocity = this.LinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
-        Fix64 yVelocity = this.LinearVelocity.y * this.LinearDamping.y * this.World.LinearDamping.y;
-        this.LinearVelocity = new VoltVector2(xVelocity, yVelocity);
+        Fix64 xVelocity = this.InternalLinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
+        Fix64 yVelocity = this.InternalLinearVelocity.y * this.LinearDamping.y * this.World.LinearDamping.y;
+        this.InternalLinearVelocity = new VoltVector2(xVelocity, yVelocity);
       }
       if (!IsFixedAngle)
         this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
@@ -819,10 +819,10 @@ namespace Volatile
 
       //Apply global gravity
       if (this.IsAffectedByWorldGravity)
-        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime * SleepDelta * mult;
+        this.InternalLinearVelocity += this.World.Gravity * this.World.DeltaTime * SleepDelta * mult;
 
       //Apply personal gravity
-      this.LinearVelocity += Gravity * this.World.DeltaTime * SleepDelta * mult;
+      this.InternalLinearVelocity += Gravity * this.World.DeltaTime * SleepDelta * mult;
     }
 
     internal void IntegrateVelocity()
@@ -845,14 +845,14 @@ namespace Volatile
       if (!isAwake) return;
 
       VoltVector2 targetPosition =
-        this.Position + this.World.DeltaTime * this.LinearVelocity;
+        this.InternalPosition + this.World.DeltaTime * this.InternalLinearVelocity;
 
       if (RaycastMove)
       {
         IntegrateRaycastMove(ref targetPosition);
       }
 
-      this.Position = targetPosition;
+      this.InternalPosition = targetPosition;
     }
 
     private void IntegrateRotation()
@@ -873,7 +873,7 @@ namespace Volatile
 
       //Position
       if (!IsFixedPosition)
-        this.Position += this.BiasVelocity;
+        this.InternalPosition += this.BiasVelocity;
 
       //Rotation
       if (!IsFixedAngle)
@@ -890,15 +890,15 @@ namespace Volatile
 
     private void IntegrateRaycastMove(ref VoltVector2 targetPosition)
     {
-      if ((Position - targetPosition).Length() == Fix64.Zero) 
+      if ((InternalPosition - targetPosition).Length() == Fix64.Zero) 
         return;
 
-      if (World.QueryPoint(Position, CanCollideRay).Count > 0) 
+      if (World.QueryPoint(InternalPosition, CanCollideRay).Count > 0) 
         return;
 
       //Raycast from current position to target position
-      var ray = new VoltRayCast(Position, targetPosition);
-      rayMoveOrigin = Position;
+      var ray = new VoltRayCast(InternalPosition, targetPosition);
+      rayMoveOrigin = InternalPosition;
       rayMoveTarget = targetPosition;
       var result = new VoltRayResult();
 
@@ -913,15 +913,13 @@ namespace Volatile
 
     public void ClearForces()
     {
-      this.Force = VoltVector2.zero;
-      this.Torque = Fix64.Zero;
       this.BiasVelocity = VoltVector2.zero;
       this.BiasRotation = Fix64.Zero;
     }
 
     public void ClearVelocities()
     {
-      this.LinearVelocity = VoltVector2.zero;
+      this.InternalLinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
     }
 
@@ -977,7 +975,7 @@ namespace Volatile
 #region World-Space to Body-Space Transformations
     internal VoltVector2 WorldToBodyPoint(VoltVector2 vector)
     {
-      return VoltMath.WorldToBodyPoint(this.Position, this.Facing, vector);
+      return VoltMath.WorldToBodyPoint(this.InternalPosition, this.Facing, vector);
     }
 
     internal VoltVector2 WorldToBodyDirection(VoltVector2 vector)
@@ -997,7 +995,7 @@ namespace Volatile
     #region Body-Space to World-Space Transformations
     internal VoltVector2 BodyToWorldPoint(VoltVector2 vector)
     {
-      return VoltMath.BodyToWorldPoint(this.Position, this.Facing, vector);
+      return VoltMath.BodyToWorldPoint(this.InternalPosition, this.Facing, vector);
     }
 
     internal VoltVector2 BodyToWorldDirection(VoltVector2 vector)
@@ -1008,7 +1006,7 @@ namespace Volatile
     internal Axis BodyToWorldAxis(Axis axis)
     {
       VoltVector2 normal = axis.Normal.Rotate(this.Facing);
-      Fix64 width = VoltVector2.Dot(normal, this.Position) + axis.Width;
+      Fix64 width = VoltVector2.Dot(normal, this.InternalPosition) + axis.Width;
       return new Axis(normal, width);
     }
     #endregion

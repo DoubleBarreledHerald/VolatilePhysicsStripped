@@ -87,12 +87,12 @@ namespace Volatile
 
       if (bodyA.IsTrigger || bodyB.IsTrigger || manifold.ShapeA.IsTrigger || manifold.ShapeB.IsTrigger) return;
 
-      localA = worldPoint - bodyA.Position; localA.Rotate(-bodyA.Angle);
-      localB = worldPoint - bodyB.Position; localB.Rotate(-bodyB.Angle);
-      worldA = localA; worldA.Rotate(bodyA.Angle); worldA += bodyA.Position;
-      worldB = localB; worldB.Rotate(bodyB.Angle); worldB += bodyA.Position;
-      rA = worldA - bodyA.Position;
-      rB = worldB - bodyB.Position;
+      localA = worldPoint - bodyA.InternalPosition; localA.Rotate(-bodyA.Angle);
+      localB = worldPoint - bodyB.InternalPosition; localB.Rotate(-bodyB.Angle);
+      worldA = localA; worldA.Rotate(bodyA.Angle); worldA += bodyA.InternalPosition;
+      worldB = localB; worldB.Rotate(bodyB.Angle); worldB += bodyA.InternalPosition;
+      rA = worldA - bodyA.InternalPosition;
+      rB = worldB - bodyB.InternalPosition;
       tangent = new VoltVector2(normal.y, -normal.x);
 
       invMassA = bodyA.InvMass;
@@ -101,8 +101,8 @@ namespace Volatile
       invIB = bodyB.InvInertia;
 
 		  // Store relative velocity BEFORE warm starting for restitution
-      VoltVector2 velA = bodyA.LinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
-      VoltVector2 velB = bodyB.LinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
+      VoltVector2 velA = bodyA.InternalLinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
+      VoltVector2 velB = bodyB.InternalLinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
       VoltVector2 relVel = velB - velA;
       relativeVelocity = VoltVector2.Dot(normal, relVel);
     }
@@ -113,8 +113,8 @@ namespace Volatile
       VoltBody bodyB = manifold.ShapeB.Body;
 
       //Contact
-      VoltVector2 velA = bodyA.LinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
-      VoltVector2 velB = bodyB.LinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
+      VoltVector2 velA = bodyA.InternalLinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
+      VoltVector2 velB = bodyB.InternalLinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
       VoltVector2 relVel = velB - velA;
       Fix64 Cdot = VoltVector2.Dot(normal, relVel);
 
@@ -180,8 +180,8 @@ namespace Volatile
       if (effectiveMass < VoltConfig.MINIMUM_DYNAMIC_MASS) return;
 
       // Calculate current velocities
-      VoltVector2 velA = bodyA.LinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
-      VoltVector2 velB = bodyB.LinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
+      VoltVector2 velA = bodyA.InternalLinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
+      VoltVector2 velB = bodyB.InternalLinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
       VoltVector2 relVel = velB - velA;
       Fix64 vn = VoltVector2.Dot(normal, relVel);
 
