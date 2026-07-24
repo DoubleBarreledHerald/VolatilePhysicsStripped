@@ -198,7 +198,6 @@ namespace Volatile
 
     public VoltVector2 Position {
       get { return InternalPosition * World.WorldScale; }
-      set { InternalPosition = value * World.InvWorldScale; }
     }
     internal VoltVector2 InternalPosition { get; private set; }
 
@@ -409,7 +408,7 @@ namespace Volatile
 
     public void Set(VoltVector2 position, Fix64 radians)
     {
-      this.InternalPosition = position;
+      this.InternalPosition = position * World.InvWorldScale;
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
       this.OnPositionUpdated();
@@ -897,7 +896,7 @@ namespace Volatile
         return;
 
       //Raycast from current position to target position
-      var ray = new VoltRayCast(InternalPosition, targetPosition);
+      var ray = new VoltRayCast(InternalPosition * World.WorldScale, targetPosition * World.WorldScale);
       rayMoveOrigin = InternalPosition;
       rayMoveTarget = targetPosition;
       var result = new VoltRayResult();
@@ -906,7 +905,7 @@ namespace Volatile
       if (World.RayCast(ref ray, ref result, CanCollideRay))
       {
         //move to collision point
-        targetPosition = result.ComputePoint(ref ray);
+        targetPosition = result.InternalComputePoint(ref ray);
         return;
       }
     }

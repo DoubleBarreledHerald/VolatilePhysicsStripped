@@ -435,6 +435,7 @@ namespace Volatile
           VoltVector2 point,
           VoltBodyFilter filter = null)
         {
+            point *= InvWorldScale;
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryPoint(point, this.reusableBuffer);
             this.dynamicBroadphase.QueryPoint(point, this.reusableBuffer);
@@ -461,6 +462,8 @@ namespace Volatile
           Fix64 radius,
           VoltBodyFilter filter = null)
         {
+            origin *= InvWorldScale;
+            radius *= InvWorldScale;
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
             this.dynamicBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
@@ -494,6 +497,7 @@ namespace Volatile
           VoltAABB aabb,
           VoltBodyFilter filter = null)
         {
+            aabb = new VoltAABB(aabb.Center * InvWorldScale, aabb.Extent * InvWorldScale);
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
@@ -520,6 +524,7 @@ namespace Volatile
           VoltAABB aabb,
           VoltBodyFilter filter = null)
         {
+            aabb = new VoltAABB(aabb.Center * InvWorldScale, aabb.Extent * InvWorldScale);
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
@@ -544,6 +549,7 @@ namespace Volatile
           ref VoltRayResult result,
           VoltBodyFilter filter = null)
         {
+            ray = new VoltRayCast(ray.origin * InvWorldScale, (ray.origin + ray.direction * ray.distance) * InvWorldScale);
             this.reusableBuffer.Clear();
             this.staticBroadphase.RayCast(ref ray, this.reusableBuffer);
             this.dynamicBroadphase.RayCast(ref ray, this.reusableBuffer);
@@ -571,6 +577,8 @@ namespace Volatile
           ref VoltRayResult result,
           VoltBodyFilter filter = null)
         {
+            ray = new VoltRayCast(ray.origin * InvWorldScale, (ray.origin + ray.direction * ray.distance) * InvWorldScale);
+            radius = radius * InvWorldScale;
             this.reusableBuffer.Clear();
             this.staticBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);
             this.dynamicBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);
