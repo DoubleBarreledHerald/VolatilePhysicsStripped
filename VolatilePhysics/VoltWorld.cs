@@ -58,11 +58,17 @@ namespace Volatile
         }
         #endregion
 
+        public void SetDeltaTime(Fix64 deltaTime, int iterationCount)
+        {
+            this.IterationCount = iterationCount;
+            this.DeltaTime = deltaTime / (Fix64)IterationCount;
+        }
+
         /// <summary>
         /// Fixed update delta time for body integration. 
         /// Defaults to Config.DEFAULT_DELTA_TIME.
         /// </summary>
-        public Fix64 DeltaTime { get; set; }
+        public Fix64 DeltaTime { get; private set; }
 
         public Fix64 WorldScale { get { return _worldScale; } set{ _worldScale = value; InvWorldScale = Fix64.One / value;} }
         private Fix64 _worldScale = Fix64.One;
@@ -83,7 +89,7 @@ namespace Volatile
             }
         }
         
-        internal Fix64 Elasticity { get; private set; }
+        internal Fix64 Elasticity { get; private set; } = Fix64.One;
         public VoltVector2 LinearDamping { get; set; }
         public Fix64 AngularDamping { get; set; }
         public VoltVector2 Gravity { get; set; }
@@ -112,7 +118,7 @@ namespace Volatile
             this.AngularDamping = damping;
 
             this.IterationCount = VoltConfig.DEFAULT_ITERATION_COUNT;
-            this.DeltaTime = VoltConfig.DEFAULT_DELTA_TIME;
+            this.DeltaTime = VoltConfig.DEFAULT_DELTA_TIME / (Fix64)IterationCount;
 
             this.bodies = new CheapList<VoltBody>();
             this.manifolds = new List<Manifold>();
@@ -304,6 +310,14 @@ namespace Volatile
         /// </summary>
         public void Update()
         {
+            for (int i = 0; i < IterationCount; i++)
+            {
+                Step();
+            }
+        }
+
+        private void Step()
+        {
             contactPoints.Clear();
 
             //Check dynamic order
@@ -372,14 +386,12 @@ namespace Volatile
             for (int i = 0; i < this.manifolds.Count; i++)
                 this.manifolds[i].PreStep();
 
-            this.Elasticity = Fix64.One;
-            for (int j = 0; j < 1; j++)
+            for (int j = 0; j < 10; j++)
                 for (int i = 0; i < this.manifolds.Count; i++)
                     this.manifolds[i].Solve();
 
-            for (int j = 0; j < 1; j++)
-                for (int i = 0; i < this.manifolds.Count; i++)
-                    this.manifolds[i].SolveRestitution();
+            for (int i = 0; i < this.manifolds.Count; i++)
+                this.manifolds[i].SolveRestitution();
 
             //sleep?
             for (int i = 0; i < this.bodies.Count; i++)
