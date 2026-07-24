@@ -80,6 +80,12 @@ namespace Volatile
         /// </summary>
         public int IterationCount { get; set; }
 
+        /// <summary>
+        /// Number of iterations when updating the world.
+        /// Defaults to Config.DEFAULT_ITERATION_COUNT.
+        /// </summary>
+        public int SubStepCount { get; set; }
+
         public IEnumerable<VoltBody> Bodies
         {
             get
@@ -118,7 +124,9 @@ namespace Volatile
             this.AngularDamping = damping;
 
             this.IterationCount = VoltConfig.DEFAULT_ITERATION_COUNT;
-            this.DeltaTime = VoltConfig.DEFAULT_DELTA_TIME / (Fix64)IterationCount;
+
+            this.SubStepCount = VoltConfig.DEFAULT_SUBSTEP_COUNT;
+            this.DeltaTime = VoltConfig.DEFAULT_DELTA_TIME / (Fix64)SubStepCount;
 
             this.bodies = new CheapList<VoltBody>();
             this.manifolds = new List<Manifold>();
@@ -310,7 +318,7 @@ namespace Volatile
         /// </summary>
         public void Update()
         {
-            for (int i = 0; i < IterationCount; i++)
+            for (int i = 0; i < SubStepCount; i++)
             {
                 Step();
             }
@@ -386,7 +394,7 @@ namespace Volatile
             for (int i = 0; i < this.manifolds.Count; i++)
                 this.manifolds[i].PreStep();
 
-            for (int j = 0; j < 10; j++)
+            for (int j = 0; j < IterationCount; j++)
                 for (int i = 0; i < this.manifolds.Count; i++)
                     this.manifolds[i].Solve();
 

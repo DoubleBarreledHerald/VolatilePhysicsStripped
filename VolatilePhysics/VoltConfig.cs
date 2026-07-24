@@ -41,7 +41,8 @@ namespace Volatile
     public static readonly Fix64 DEFAULT_DENSITY = Fix64.One;
     internal static readonly Fix64 DEFAULT_DELTA_TIME = (Fix64)0.02M;
     internal static readonly Fix64 DEFAULT_DAMPING = (Fix64)0.999M;
-    internal const int DEFAULT_ITERATION_COUNT = 5;
+    internal const int DEFAULT_ITERATION_COUNT = 10;
+    internal const int DEFAULT_SUBSTEP_COUNT = 5;
 
     // AABB extension for the dynamic tree
     internal static readonly Fix64 AABB_EXTENSION = (Fix64)0.2M;
