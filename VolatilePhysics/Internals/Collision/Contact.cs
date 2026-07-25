@@ -55,6 +55,9 @@ namespace Volatile
     private VoltVector2 tangent;
     private Fix64 relativeVelocity;
 
+    private Fix64 accumulatedNormalLambda;
+    private Fix64 accumulatedFrictionLambda;
+
     private Fix64 invMassA;
     private Fix64 invMassB;
     private Fix64 invIA;
@@ -112,6 +115,19 @@ namespace Volatile
       VoltBody bodyA = manifold.ShapeA.Body;
       VoltBody bodyB = manifold.ShapeB.Body;
 
+      SolveContact(manifold);
+
+      SolveFriction(manifold);
+
+      bodyA.CheckWakeUp();
+      bodyB.CheckWakeUp();
+    }
+
+    internal void SolveContact(Manifold manifold)
+    {
+      VoltBody bodyA = manifold.ShapeA.Body;
+      VoltBody bodyB = manifold.ShapeB.Body;
+
       //Contact
       VoltVector2 velA = bodyA.InternalLinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
       VoltVector2 velB = bodyB.InternalLinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
@@ -122,37 +138,56 @@ namespace Volatile
       Fix64 rnB = VoltMath.Cross(rB, normal);
       Fix64 effectiveMass =
         this.invMassA + this.invMassB + rnA * rnA * this.invIA + rnB * rnB * this.invIB;
-      if (effectiveMass >= (Fix64)0.000001)
-      {
-        Fix64 seperation = VoltMath.Min((Fix64)0, -Fix64.Abs(penetration) + VoltConfig.ResolveSlop);
-        Fix64 velocityBias = (VoltConfig.ResolveRate / bodyA.World.DeltaTime) * seperation;
 
-        Fix64 lamda = -(Cdot + velocityBias) / effectiveMass;
-        if (lamda == (Fix64)0) return;
+      if (effectiveMass < VoltConfig.MINIMUM_DYNAMIC_MASS) return;
 
-        VoltVector2 impulse = normal * lamda;
-        bodyA.ApplyImpulse(-impulse, worldA);
-        bodyB.ApplyImpulse(impulse, worldB);
-      }
+      Fix64 seperation = VoltMath.Min((Fix64)0, -Fix64.Abs(penetration) + VoltConfig.ResolveSlop);
+      Fix64 velocityBias = (VoltConfig.ResolveRate / bodyA.World.DeltaTime) * seperation;
 
-      //Friction
-      if (manifold.Friction > Fix64.Zero)
-      {
-        Fix64 rtA = VoltMath.Cross(rA, tangent);
-        Fix64 rtB = VoltMath.Cross(rB, tangent);
-        Fix64 effectiveMassTangent = invMassA + invMassB + rtA * rtA * invIA + rtB * rtB * invIB;
-        if (effectiveMassTangent >= VoltConfig.MINIMUM_DYNAMIC_MASS)
-        {
-          Fix64 CTDot = VoltVector2.Dot(tangent, relVel);
-          Fix64 lamda = -CTDot / effectiveMassTangent;
-          VoltVector2 frictionImpulse = tangent * lamda;
-          bodyA.ApplyImpulse(-frictionImpulse, worldA);
-          bodyB.ApplyImpulse(frictionImpulse, worldB);
-        }
-      }
+      Fix64 lambda = -(Cdot + velocityBias) / effectiveMass;
+      
+      // Clamp the accumulated impulse
+      Fix64 oldAccum = this.accumulatedNormalLambda;
+      this.accumulatedNormalLambda = VoltMath.Max(oldAccum + lambda, Fix64.Zero);
+      lambda = this.accumulatedNormalLambda - oldAccum;
 
-      bodyA.CheckWakeUp();
-      bodyB.CheckWakeUp();
+      if (lambda == (Fix64)0) return;
+
+      VoltVector2 impulse = normal * lambda;
+      bodyA.ApplyImpulse(-impulse, worldA);
+      bodyB.ApplyImpulse(impulse, worldB);
+    }
+
+    internal void SolveFriction(Manifold manifold)
+    {
+      if (manifold.Friction <= Fix64.Zero) return;
+
+      Fix64 rtA = VoltMath.Cross(rA, tangent);
+      Fix64 rtB = VoltMath.Cross(rB, tangent);
+      Fix64 effectiveMassTangent = invMassA + invMassB + rtA * rtA * invIA + rtB * rtB * invIB;
+
+      if (effectiveMassTangent < VoltConfig.MINIMUM_DYNAMIC_MASS) return;
+      
+      VoltBody bodyA = manifold.ShapeA.Body;
+      VoltBody bodyB = manifold.ShapeB.Body;
+
+      VoltVector2 velA = bodyA.InternalLinearVelocity + VoltMath.CrossSV(rA, bodyA.AngularVelocity);
+      VoltVector2 velB = bodyB.InternalLinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
+      VoltVector2 relVel = velB - velA;
+      Fix64 CTDot = VoltVector2.Dot(tangent, relVel);
+      Fix64 lambda = -CTDot / effectiveMassTangent;
+
+      // Compute the maximum friction impulse according to Coulomb's model
+      Fix64 maxFriction = manifold.Friction * this.accumulatedNormalLambda;
+      
+      // Clamp force between -maxFriction and maxFriction
+      Fix64 oldAccum = this.accumulatedFrictionLambda;
+      this.accumulatedFrictionLambda = VoltMath.Max(-maxFriction, VoltMath.Min(oldAccum + lambda, maxFriction));
+      lambda = this.accumulatedFrictionLambda - oldAccum;
+
+      VoltVector2 frictionImpulse = tangent * lambda;
+      bodyA.ApplyImpulse(-frictionImpulse, worldA);
+      bodyB.ApplyImpulse(frictionImpulse, worldB);
     }
 
     internal void SolveRestitution(Manifold manifold)
@@ -218,6 +253,8 @@ namespace Volatile
       invMassB = Fix64.Zero;
       invIA = Fix64.Zero;
       invIB = Fix64.Zero;
+      accumulatedNormalLambda = Fix64.Zero;
+      accumulatedFrictionLambda = Fix64.Zero;
     }
     #endregion
   }
