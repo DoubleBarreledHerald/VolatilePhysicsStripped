@@ -61,7 +61,7 @@ namespace Volatile
 
     public static bool Filter(VoltBody body, VoltBodyFilter filter)
     {
-      return ((filter == null) || (filter.Invoke(body) == true));
+      return (filter == null) || (filter.Invoke(body) == true);
     }
 
     /// <summary>
@@ -726,7 +726,7 @@ namespace Volatile
 
     
     internal void ApplyImpulse(VoltVector2 impulse, VoltVector2 worldPoint) {
-      VoltVector2 r = worldPoint - (this.InternalPosition);
+      VoltVector2 r = worldPoint - this.InternalPosition;
 
       this.InternalLinearVelocity = this.InternalLinearVelocity + (impulse * InvMass);
       this.AngularVelocity -= this.InvInertia * VoltMath.Cross(impulse, r);
@@ -798,12 +798,20 @@ namespace Volatile
       // Apply damping
       if (!IsFixedPosition)
       {
-        Fix64 xVelocity = this.InternalLinearVelocity.x * this.LinearDamping.x * this.World.LinearDamping.x;
-        Fix64 yVelocity = this.InternalLinearVelocity.y * this.LinearDamping.y * this.World.LinearDamping.y;
+        Fix64 xVelocity = this.InternalLinearVelocity.x;
+          xVelocity -= this.InternalLinearVelocity.x * this.LinearDamping.x * World.DeltaTime;
+          xVelocity -= this.InternalLinearVelocity.x * this.World.LinearDamping.x * World.DeltaTime;
+        Fix64 yVelocity = this.InternalLinearVelocity.y;
+          yVelocity -= this.InternalLinearVelocity.y * this.LinearDamping.y * World.DeltaTime;
+          yVelocity -= this.InternalLinearVelocity.y * this.World.LinearDamping.y * World.DeltaTime;
+
         this.InternalLinearVelocity = new VoltVector2(xVelocity, yVelocity);
       }
       if (!IsFixedAngle)
-        this.AngularVelocity *= this.World.AngularDamping * this.AngularDamping;
+      {
+        this.AngularVelocity -= this.AngularVelocity * this.AngularDamping * World.DeltaTime;
+        this.AngularVelocity -= this.AngularVelocity * this.World.AngularDamping * World.DeltaTime;
+      }
     }
 
     internal void ApplyGravity(Fix64 mult)

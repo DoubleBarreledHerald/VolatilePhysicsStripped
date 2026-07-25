@@ -108,6 +108,15 @@ namespace Volatile
       VoltVector2 velB = bodyB.InternalLinearVelocity + VoltMath.CrossSV(rB, bodyB.AngularVelocity);
       VoltVector2 relVel = velB - velA;
       relativeVelocity = VoltVector2.Dot(normal, relVel);
+
+      // Warm starting: apply the accumulated point impulse from the previous frame
+      /* const normalImpulse = this.normal.scale(this.accumulatedNormalLambda);
+      const frictionImpulse = this.tangent.scale(this.accumulatedFrictionLambda);
+      const totalImpulse = normalImpulse.add(frictionImpulse);
+      this.bodyA.velocity = this.bodyA.velocity.sub(totalImpulse.scale(this.invMassA));
+      this.bodyA.angularVelocity -= this.invIA * this.rA.cross(totalImpulse);
+      this.bodyB.velocity = this.bodyB.velocity.add(totalImpulse.scale(this.invMassB));
+      this.bodyB.angularVelocity += this.invIB * this.rB.cross(totalImpulse); */
     }
 
     internal void Solve(Manifold manifold)
