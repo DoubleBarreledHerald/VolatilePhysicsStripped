@@ -58,10 +58,10 @@ namespace Volatile
         }
         #endregion
 
-        public void SetDeltaTime(Fix64 deltaTime, int iterationCount)
+        public void SetDeltaTime(Fix64 deltaTimeSeconds, int subStepCount)
         {
-            this.IterationCount = iterationCount;
-            this.DeltaTime = deltaTime / (Fix64)IterationCount;
+            this.SubStepCount = subStepCount;
+            this.DeltaTime = deltaTimeSeconds / (Fix64)SubStepCount;
         }
 
         /// <summary>
