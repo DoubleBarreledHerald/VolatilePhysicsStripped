@@ -900,7 +900,7 @@ namespace Volatile
       if ((InternalPosition - targetPosition).Length() == Fix64.Zero) 
         return;
 
-      if (World.QueryPoint(InternalPosition, CanCollideRay).Count > 0) 
+      if (World.QueryPointInternal(InternalPosition, CanCollideRay).Count > 0)
         return;
 
       //Raycast from current position to target position

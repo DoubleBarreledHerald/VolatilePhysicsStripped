@@ -456,6 +456,13 @@ namespace Volatile
           VoltBodyFilter filter = null)
         {
             point *= InvWorldScale;
+            return QueryPointInternal(point, filter);
+        }
+
+        internal VoltBuffer<VoltBody> QueryPointInternal(
+          VoltVector2 point,
+          VoltBodyFilter filter = null)
+        {
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryPoint(point, this.reusableBuffer);
             this.dynamicBroadphase.QueryPoint(point, this.reusableBuffer);
