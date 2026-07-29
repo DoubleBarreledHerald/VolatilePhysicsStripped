@@ -250,6 +250,7 @@ namespace Volatile
       this.worldPoint = VoltVector2.zero;
       this.normal = VoltVector2.zero;
       this.penetration = Fix64.Zero;
+
       localA = VoltVector2.zero;
       localB = VoltVector2.zero;
       worldA = VoltVector2.zero;
@@ -258,12 +259,14 @@ namespace Volatile
       rB = VoltVector2.zero;
       tangent = VoltVector2.zero;
       relativeVelocity = Fix64.Zero;
+      
+      accumulatedNormalLambda = Fix64.Zero;
+      accumulatedFrictionLambda = Fix64.Zero;
+
       invMassA = Fix64.Zero;
       invMassB = Fix64.Zero;
       invIA = Fix64.Zero;
       invIB = Fix64.Zero;
-      accumulatedNormalLambda = Fix64.Zero;
-      accumulatedFrictionLambda = Fix64.Zero;
     }
     #endregion
   }

@@ -199,7 +199,7 @@ namespace Volatile
     public VoltVector2 Position {
       get { return InternalPosition * World.WorldScale; }
     }
-    internal VoltVector2 InternalPosition { get; private set; }
+    public VoltVector2 InternalPosition { get; private set; }
 
     public VoltVector2 Facing { get; private set; }
 
@@ -238,9 +238,8 @@ namespace Volatile
     
     public VoltVector2 LinearVelocity {
       get { return InternalLinearVelocity * World.WorldScale; }
-      set { InternalLinearVelocity = value * World.InvWorldScale; }
     }
-    internal VoltVector2 InternalLinearVelocity { get; set; }
+    public VoltVector2 InternalLinearVelocity { get; set; }
     public Fix64 AngularVelocity { get; set; }
 
     /// <summary>
@@ -394,21 +393,32 @@ namespace Volatile
     public void AddForce(VoltVector2 force)
     {
       if (IsEnabled == false) return;
-      this.LinearVelocity += force * World.DeltaTime * InvMass;
+      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
       CheckWakeUp();
     }
 
     public void AddForce(VoltVector2 force, VoltVector2 point)
     {
       if (IsEnabled == false) return;
-      this.LinearVelocity += force * World.DeltaTime * InvMass;
+      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
       this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * World.DeltaTime * InvMass;
       CheckWakeUp();
     }
 
+    /// <summary>
+    /// Unsafe Set. Position is altered by world scale and is liable to error.
+    /// </summary>
     public void Set(VoltVector2 position, Fix64 radians)
     {
-      this.InternalPosition = position * World.InvWorldScale;
+      SafeSet(position * World.InvWorldScale, radians);
+    }
+
+    /// <summary>
+    /// Safe Set. Internal position is not altered by world scale and is safe from error.
+    /// </summary>
+    public void SafeSet(VoltVector2 internalPosition, Fix64 radians)
+    {
+      this.InternalPosition = internalPosition;
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
       this.OnPositionUpdated();

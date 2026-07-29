@@ -70,9 +70,13 @@ namespace Volatile
         /// </summary>
         public Fix64 DeltaTime { get; private set; }
 
-        public Fix64 WorldScale { get { return _worldScale; } set{ _worldScale = value; InvWorldScale = Fix64.One / value;} }
+        public Fix64 WorldScale { get { return _worldScale; } set{
+            _worldScale = value;
+            Console.WriteLine("HUH?? " + ((decimal)1 / (decimal)value) + "VS" + (Fix64)((decimal)1 / (decimal)value));
+            InvWorldScale = (Fix64)((decimal)1 / (decimal)value);
+        } }
         private Fix64 _worldScale = Fix64.One;
-        public Fix64 InvWorldScale = Fix64.One;
+        public Fix64 InvWorldScale{get; private set;} = Fix64.One;
 
         /// <summary>
         /// Number of iterations when updating the world.
