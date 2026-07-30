@@ -386,6 +386,7 @@ namespace Volatile
     public void AddTorque(Fix64 torque)
     {
       if (IsEnabled == false) return;
+      if (IsFixedAngle) return;
       this.AngularVelocity -= torque * World.DeltaTime * InvInertia;
       CheckWakeUp();
     }
@@ -393,6 +394,7 @@ namespace Volatile
     public void AddForce(VoltVector2 force)
     {
       if (IsEnabled == false) return;
+      if (IsFixedPosition) return;
       this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
       CheckWakeUp();
     }
@@ -400,6 +402,7 @@ namespace Volatile
     public void AddForce(VoltVector2 force, VoltVector2 point)
     {
       if (IsEnabled == false) return;
+      if (IsFixedPosition) return;
       this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
       this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * World.DeltaTime * InvMass;
       CheckWakeUp();
@@ -736,10 +739,14 @@ namespace Volatile
 
     
     internal void ApplyImpulse(VoltVector2 impulse, VoltVector2 worldPoint) {
+      if (IsEnabled == false) return;
+
       VoltVector2 r = worldPoint - this.InternalPosition;
 
-      this.InternalLinearVelocity = this.InternalLinearVelocity + (impulse * InvMass);
-      this.AngularVelocity -= this.InvInertia * VoltMath.Cross(impulse, r);
+      if (!IsFixedPosition)
+        this.InternalLinearVelocity = this.InternalLinearVelocity + (impulse * InvMass);
+      if (!IsFixedAngle)
+        this.AngularVelocity -= this.InvInertia * VoltMath.Cross(impulse, r);
     }
 
     internal void ApplyBias(VoltVector2 j, VoltVector2 r)
@@ -828,6 +835,7 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (!this.isAwake) return;
+      if (IsFixedPosition) return;
 
       Fix64 SleepDelta = Fix64.One;
 
