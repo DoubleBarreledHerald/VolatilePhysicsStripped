@@ -75,113 +75,6 @@ namespace Volatile
           throw new InvalidOperationException();
         return this.BodyType == VoltBodyType.Static;
       }
-      
-      //Leaves the body in the incorrect Broadphase
-      /* set
-      {
-        if (this.BodyType == VoltBodyType.Invalid)
-          throw new InvalidOperationException();
-        if (value)
-        {
-          //static
-          SetStatic();
-        }
-        else
-        {
-          //dynamic
-          ComputeDynamics();
-        }
-      } */
-    }
-
-    public bool isAwake { get; set; } = true;
-
-    public bool CanSleep { get; set; } = true;
-
-    public Fix64 SleepEpsilon = (Fix64)20;
-
-    public Fix64 SleepTimerSeconds = (Fix64)0.25;
-
-    public Fix64 IdleTime { get; set; }
-
-    internal bool willWakeUp = false;
-
-    public bool SleepGravityScaling = true;
-
-    //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
-    private bool CheckSleepy(){
-      var speedSquared = this.InternalLinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
-      var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
-
-      // Add to idle time
-      if(speedSquared >= speedLimitSquared){
-          this.IdleTime = Fix64.Zero;
-          isAwake = true;
-          return false;
-      }
-
-      if (this.IdleTime > this.SleepTimerSeconds){
-          return true;
-      }
-      
-      this.IdleTime += World.DeltaTime;
-      return false;
-    }
-
-    public void CheckWakeUp()
-    {
-      if (!this.CanSleep || this.willWakeUp || this.isAwake) return;
-
-      if (CheckSleepy()) return;
-
-      this.willWakeUp = true;
-    }
-
-    public void CallSleep()
-    {
-      if (!this.CanSleep) return;
-
-      if (!this.isAwake) return;
-
-      if (!CheckSleepy()) return;
-
-      this.isAwake = false;
-      ClearForces();
-      ClearVelocities();
-    }
-
-    internal void CallWakeUp()
-    {
-      if (!this.CanSleep) return;
-
-      if (this.isAwake) {
-        this.willWakeUp = false;
-        return;
-      }
-
-      if (!this.willWakeUp) return;
-
-      WakeUp();
-    }
-
-    public void WakeUp()
-    {
-      this.willWakeUp = false;
-      this.IdleTime = (Fix64)0;
-      this.isAwake = true;
-    }
-
-    /// <summary>
-    /// Awakens nearby bodies if they pass this body's collision filter.
-    /// </summary>
-    public void WakeUpNeighbors()
-    {
-      VoltBuffer<VoltBody> neighbors = World.QueryOverlapBody(AABB, CheckCollisionFilter);
-
-      foreach (VoltBody neighbor in neighbors)
-      {
-          neighbor.WakeUp();
-      }
     }
 
     public bool IsEnabled { get; set; } = true;
@@ -222,39 +115,34 @@ namespace Volatile
     }
     public int ID { get; private set; }
     public VoltBodyType BodyType { get; private set; }
-    public VoltCollisionFilter CollisionFilter { private get; set; }
-
-    /// <summary>
-    /// Current angle in radians.
-    /// </summary>
-    public Fix64 Angle { get; private set; }
 
     public bool IsFixedAngle { get; set; } = false;
-
     public bool IsFixedPosition { get; set; } = false;
-
     public bool IsFixed { get { return IsFixedAngle && IsFixedPosition; } }
-
     
+    public VoltCollisionFilter CollisionFilter { private get; set; }
+
     public VoltVector2 LinearVelocity {
       get { return InternalLinearVelocity * World.WorldScale; }
     }
-    public VoltVector2 InternalLinearVelocity { get; set; }
-    public Fix64 AngularVelocity { get; set; }
 
     /// <summary>
     /// The local linear damping.
     /// </summary>
     public VoltVector2 LinearDamping { get; set; } = VoltVector2.one;
+    public VoltVector2 InternalLinearVelocity { get; set; }
+
+    /// <summary>
+    /// Current angle in radians.
+    /// </summary>
+    public Fix64 Angle { get; private set; }
     /// <summary>
     /// The local angular damping.
     /// </summary>
     public Fix64 AngularDamping { get; set; } = (Fix64)1;
+    public Fix64 AngularVelocity { get; set; }
 
     public Fix64 BiasStrength = (Fix64)1;
-
-    public VoltVector2 Force { get; private set; }
-    public Fix64 Torque { get; private set; }
     
     /// <summary>
     /// Sets whether or not the body will be affected by the World's gravity. 
@@ -265,12 +153,174 @@ namespace Volatile
     /// </summary>
     public VoltVector2 Gravity { get; set; }
 
+    /// <summary>
+    /// The collective mass of each of the shapes that make up the body.
+    /// If set, overrides.
+    /// </summary>
+    public Fix64 Mass
+    {
+      get
+      {
+        if (BodyType == VoltBodyType.Static) return Fix64.Zero;
+        if (IsFixedPosition) return Fix64.MaxValue;
+        //mass is overridden.
+        if (_mass != null)
+          return _mass.GetValueOrDefault();
+        //mass is calculated.
+        return collMass;
+      }
+      set
+      {
+        if (BodyType == VoltBodyType.Static) return;
+
+        if (value == Fix64.Zero)
+        {
+          _mass = null;
+        } else {
+          _mass = value;
+        }
+        //recalculate
+        ComputeDynamics();
+      }
+    }
+    /// <summary>
+    /// Overrides the Mass value;
+    /// </summary>
+    private Fix64? _mass { get; set; } = null;
+    /// <summary>
+    /// The collective mass of each shape that makes up the body.
+    /// </summary>
+    private Fix64 collMass { get; set; }
+    public Fix64 Inertia { get; set; }
+    public Fix64 InvMass { get; private set; }
+    public Fix64 InvInertia { get; private set; }
+
+    // Used for broadphase structures
+    public int ProxyId { get; internal set; }
+
+    public VoltShape[] shapes { get; private set; }
+    internal int shapeCount;
+    /// <summary>
+    /// The collective area of each shape that makes up the body.
+    /// </summary>
+    public Fix64 Area { get; private set; }
+
+    public VoltBody()
+    {
+      this.Reset();
+      this.ProxyId = -1;
+    }
+
+    internal void InitializeDynamic(
+      VoltVector2 position,
+      Fix64 radians,
+      VoltShape[] shapesToAdd)
+    {
+      this.Initialize(position, radians, shapesToAdd);
+      this.OnPositionUpdated();
+      this.ComputeDynamics();
+    }
+
+    internal void InitializeStatic(
+      VoltVector2 position,
+      Fix64 radians,
+      VoltShape[] shapesToAdd)
+    {
+      this.Initialize(position, radians, shapesToAdd);
+      this.OnPositionUpdated();
+      this.SetStatic();
+    }
+
+    private void Initialize(
+      VoltVector2 position,
+      Fix64 radians,
+      VoltShape[] shapesToAdd)
+    {
+      this.InternalPosition = position;
+      this.Angle = radians;
+      this.Facing = VoltMath.Polar(radians);
+
+#if DEBUG
+      for (int i = 0; i < shapesToAdd.Length; i++)
+        VoltDebug.Assert(shapesToAdd[i].IsInitialized);
+#endif
+
+      if ((this.shapes == null) || (this.shapes.Length < shapesToAdd.Length))
+        this.shapes = new VoltShape[shapesToAdd.Length];
+      Array.Copy(shapesToAdd, this.shapes, shapesToAdd.Length);
+      this.shapeCount = shapesToAdd.Length;
+      this.Area = Fix64.Zero;
+      for (int i = 0; i < this.shapeCount; i++)
+      {
+        VoltShape shape = this.shapes[i];
+        shape.AssignBody(this, VoltWorld.AssignShape(shape));
+        this.Area += shape.Area;
+      }
+
+#if DEBUG
+      this.IsInitialized = true;
+#endif
+    }
+
+    internal void AssignWorld(VoltWorld world, int id)
+    {
+      this.World = world;
+      this.ID = id;
+    }
+
+    #region Manipulation
+    public void AddTorque(Fix64 torque)
+    {
+      if (IsEnabled == false) return;
+      if (IsFixedAngle) return;
+      this.AngularVelocity -= torque * World.DeltaTime * InvInertia;
+      CheckWakeUp();
+    }
+
+    public void AddForce(VoltVector2 force)
+    {
+      if (IsEnabled == false) return;
+      if (IsFixedPosition) return;
+      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
+      CheckWakeUp();
+    }
+
+    public void AddForce(VoltVector2 force, VoltVector2 point)
+    {
+      if (IsEnabled == false) return;
+      if (IsFixedPosition) return;
+      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
+      this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * World.DeltaTime * InvMass;
+      CheckWakeUp();
+    }
+
+    /// <summary>
+    /// Unsafe Set. Position is altered by world scale and is liable to error.
+    /// </summary>
+    public void Set(VoltVector2 position, Fix64 radians)
+    {
+      SafeSet(position * World.InvWorldScale, radians);
+    }
+
+    /// <summary>
+    /// Safe Set. Internal position is not altered by world scale and is safe from error.
+    /// </summary>
+    public void SafeSet(VoltVector2 internalPosition, Fix64 radians)
+    {
+      this.InternalPosition = internalPosition;
+      this.Angle = radians;
+      this.Facing = VoltMath.Polar(radians);
+      this.OnPositionUpdated();
+      CheckWakeUp();
+    }
+
+    #endregion
+
+    #region CollisionEvent
     public delegate void CollisionEventHandler(VoltBody bodyA, VoltBody bodyB);
     public event CollisionEventHandler OnCollision;
-
     public delegate void TriggerEventHandler(VoltBody bodyA, VoltBody bodyB);
     public event TriggerEventHandler OnTrigger;
-
     HashSet<VoltBody> collisions = new HashSet<VoltBody>();
     HashSet<VoltBody> triggers = new HashSet<VoltBody>();
 
@@ -326,114 +376,86 @@ namespace Volatile
     {
       OnTrigger = null;
     }
+    #endregion
 
-    /// <summary>
-    /// The collective mass of each of the shapes that make up the body.
-    /// If set, overrides.
-    /// </summary>
-    public Fix64 Mass
-    {
-      get
-      {
-        if (BodyType == VoltBodyType.Static) return Fix64.Zero;
-        if (IsFixedPosition) return Fix64.MaxValue;
-        //mass is overridden.
-        if (_mass != null)
-          return _mass.GetValueOrDefault();
-        //mass is calculated.
-        return collMass;
+    #region Sleep
+    public bool isAwake { get; set; } = true;
+    public bool CanSleep { get; set; } = true;
+    public Fix64 SleepEpsilon = (Fix64)20;
+    public Fix64 SleepTimerSeconds = (Fix64)0.25;
+    public Fix64 IdleTime { get; set; }
+    internal bool willWakeUp = false;
+    public bool SleepGravityScaling = true;
+
+    //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
+    private bool CheckSleepy(){
+      var speedSquared = this.InternalLinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
+      var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
+
+      // Add to idle time
+      if(speedSquared >= speedLimitSquared){
+          this.IdleTime = Fix64.Zero;
+          isAwake = true;
+          return false;
       }
-      set
-      {
-        if (BodyType == VoltBodyType.Static) return;
 
-        if (value == Fix64.Zero)
-        {
-          _mass = null;
-        } else {
-          _mass = value;
-        }
-        //recalculate
-        ComputeDynamics();
+      if (this.IdleTime > this.SleepTimerSeconds){
+          return true;
+      }
+      
+      this.IdleTime += World.DeltaTime;
+      return false;
+    }
+
+    public void CheckWakeUp()
+    {
+      if (!this.CanSleep || this.willWakeUp || this.isAwake) return;
+      if (CheckSleepy()) return;
+
+      this.willWakeUp = true;
+    }
+
+    public void CallSleep()
+    {
+      if (!this.CanSleep) return;
+      if (!this.isAwake) return;
+      if (!CheckSleepy()) return;
+
+      this.isAwake = false;
+      ClearVelocities();
+    }
+
+    internal void CallWakeUp()
+    {
+      if (!this.CanSleep) return;
+      if (this.isAwake) {
+        this.willWakeUp = false;
+        return;
+      }
+      if (!this.willWakeUp) return;
+
+      WakeUp();
+    }
+
+    public void WakeUp()
+    {
+      this.willWakeUp = false;
+      this.IdleTime = (Fix64)0;
+      this.isAwake = true;
+    }
+
+    /// <summary>
+    /// Awakens nearby bodies if they pass this body's collision filter.
+    /// </summary>
+    public void WakeUpNeighbors()
+    {
+      VoltBuffer<VoltBody> neighbors = World.QueryOverlapBody(AABB, CheckCollisionFilter);
+
+      foreach (VoltBody neighbor in neighbors)
+      {
+          neighbor.WakeUp();
       }
     }
-    /// <summary>
-    /// Overrides the Mass value;
-    /// </summary>
-    private Fix64? _mass { get; set; } = null;
-    /// <summary>
-    /// The collective mass of each shape that makes up the body.
-    /// </summary>
-    private Fix64 collMass { get; set; }
-    public Fix64 Inertia { get; set; }
-    public Fix64 InvMass { get; private set; }
-    public Fix64 InvInertia { get; private set; }
-
-    public VoltVector2 BiasVelocity { get; private set; }
-    public Fix64 BiasRotation { get; private set; }
-
-    // Used for broadphase structures
-    public int ProxyId { get; internal set; }
-
-    public VoltShape[] shapes { get; private set; }
-    internal int shapeCount;
-    /// <summary>
-    /// The collective area of each shape that makes up the body.
-    /// </summary>
-    public Fix64 Area { get; private set; }
-
-    #region Manipulation
-    public void AddTorque(Fix64 torque)
-    {
-      if (IsEnabled == false) return;
-      if (IsFixedAngle) return;
-      this.AngularVelocity -= torque * World.DeltaTime * InvInertia;
-      CheckWakeUp();
-    }
-
-    public void AddForce(VoltVector2 force)
-    {
-      if (IsEnabled == false) return;
-      if (IsFixedPosition) return;
-      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
-      CheckWakeUp();
-    }
-
-    public void AddForce(VoltVector2 force, VoltVector2 point)
-    {
-      if (IsEnabled == false) return;
-      if (IsFixedPosition) return;
-      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
-      this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * World.DeltaTime * InvMass;
-      CheckWakeUp();
-    }
-
-    /// <summary>
-    /// Unsafe Set. Position is altered by world scale and is liable to error.
-    /// </summary>
-    public void Set(VoltVector2 position, Fix64 radians)
-    {
-      SafeSet(position * World.InvWorldScale, radians);
-    }
-
-    /// <summary>
-    /// Safe Set. Internal position is not altered by world scale and is safe from error.
-    /// </summary>
-    public void SafeSet(VoltVector2 internalPosition, Fix64 radians)
-    {
-      this.InternalPosition = internalPosition;
-      this.Angle = radians;
-      this.Facing = VoltMath.Polar(radians);
-      this.OnPositionUpdated();
-      CheckWakeUp();
-    }
-
-    //TODO REMOVE
-    public void SetForce(VoltVector2 force, Fix64 torque, VoltVector2 biasVelocity, Fix64 biasRotation)
-    {
-      CheckWakeUp();
-    }
-
     #endregion
 
     #region Tests
@@ -567,69 +589,6 @@ namespace Volatile
     }
     #endregion
 
-    public VoltBody()
-    {
-      this.Reset();
-      this.ProxyId = -1;
-    }
-
-    internal void InitializeDynamic(
-      VoltVector2 position,
-      Fix64 radians,
-      VoltShape[] shapesToAdd)
-    {
-      this.Initialize(position, radians, shapesToAdd);
-      this.OnPositionUpdated();
-      this.ComputeDynamics();
-    }
-
-    internal void InitializeStatic(
-      VoltVector2 position,
-      Fix64 radians,
-      VoltShape[] shapesToAdd)
-    {
-      this.Initialize(position, radians, shapesToAdd);
-      this.OnPositionUpdated();
-      this.SetStatic();
-    }
-
-    private void Initialize(
-      VoltVector2 position,
-      Fix64 radians,
-      VoltShape[] shapesToAdd)
-    {
-      this.InternalPosition = position;
-      this.Angle = radians;
-      this.Facing = VoltMath.Polar(radians);
-
-#if DEBUG
-      for (int i = 0; i < shapesToAdd.Length; i++)
-        VoltDebug.Assert(shapesToAdd[i].IsInitialized);
-#endif
-
-      if ((this.shapes == null) || (this.shapes.Length < shapesToAdd.Length))
-        this.shapes = new VoltShape[shapesToAdd.Length];
-      Array.Copy(shapesToAdd, this.shapes, shapesToAdd.Length);
-      this.shapeCount = shapesToAdd.Length;
-      this.Area = Fix64.Zero;
-      for (int i = 0; i < this.shapeCount; i++)
-      {
-        VoltShape shape = this.shapes[i];
-        shape.AssignBody(this, VoltWorld.AssignShape(shape));
-        this.Area += shape.Area;
-      }
-
-#if DEBUG
-      this.IsInitialized = true;
-#endif
-    }
-
-    internal void AssignWorld(VoltWorld world, int id)
-    {
-      this.World = world;
-      this.ID = id;
-    }
-
     internal void FreeShapes()
     {
       if (this.World != null)
@@ -655,9 +614,6 @@ namespace Volatile
 
       this.InternalLinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
-
-      this.BiasVelocity = VoltVector2.zero;
-      this.BiasRotation = Fix64.Zero;
     }
 
     /// <summary>
@@ -685,9 +641,6 @@ namespace Volatile
       this.Inertia = Fix64.Zero;
       this.InvMass = Fix64.Zero;
       this.InvInertia = Fix64.Zero;
-
-      this.BiasVelocity = VoltVector2.zero;
-      this.BiasRotation = Fix64.Zero;
 
       InternalPosition = VoltVector2.zero;
       Facing = VoltVector2.zero;
@@ -747,15 +700,6 @@ namespace Volatile
         this.InternalLinearVelocity = this.InternalLinearVelocity + (impulse * InvMass);
       if (!IsFixedAngle)
         this.AngularVelocity -= this.InvInertia * VoltMath.Cross(impulse, r);
-    }
-
-    internal void ApplyBias(VoltVector2 j, VoltVector2 r)
-    {
-      if (IsEnabled == false) return;
-      if (!IsFixedPosition)
-        this.BiasVelocity += j * this.InvMass * BiasStrength;
-      if (!IsFixedAngle)
-        this.BiasRotation -= this.InvInertia * VoltMath.Cross(j, r) * BiasStrength;
     }
     #endregion
 
@@ -892,24 +836,6 @@ namespace Volatile
       this.Facing = VoltMath.Polar(this.Angle);
     }
 
-    internal void IntegrateBias()
-    {
-      if (!isAwake) return;
-
-      //Position
-      if (!IsFixedPosition)
-        this.InternalPosition += this.BiasVelocity;
-
-      //Rotation
-      if (!IsFixedAngle)
-        this.Angle += this.BiasRotation;
-      this.Facing = VoltMath.Polar(this.Angle);
-      
-      this.BiasVelocity = VoltVector2.zero;
-      this.BiasRotation = Fix64.Zero;
-      OnPositionUpdated();
-    }
-
     public VoltVector2 rayMoveOrigin;
     public VoltVector2 rayMoveTarget;
 
@@ -934,12 +860,6 @@ namespace Volatile
         targetPosition = result.InternalComputePoint(ref ray);
         return;
       }
-    }
-
-    public void ClearForces()
-    {
-      this.BiasVelocity = VoltVector2.zero;
-      this.BiasRotation = Fix64.Zero;
     }
 
     public void ClearVelocities()

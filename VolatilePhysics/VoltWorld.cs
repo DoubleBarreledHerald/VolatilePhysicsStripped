@@ -31,52 +31,23 @@ namespace Volatile
 {
     public partial class VoltWorld
     {
-        #region Helper Filters
-        public static bool FilterNone(VoltBody body)
-        {
-            return true;
-        }
-
-        public static bool FilterAll(VoltBody body)
-        {
-            return false;
-        }
-
-        public static bool FilterStatic(VoltBody body)
-        {
-            return (body.IsStatic == false);
-        }
-
-        public static bool FilterDynamic(VoltBody body)
-        {
-            return body.IsStatic;
-        }
-
-        public static VoltBodyFilter FilterExcept(VoltBody exception)
-        {
-            return ((body) => body != exception);
-        }
-        #endregion
-
+        /// <summary>
+        /// Fixed update delta time for body integration. 
+        /// Defaults to Config.DEFAULT_DELTA_TIME.
+        /// </summary>
+        public Fix64 DeltaTime { get; private set; }
         public void SetDeltaTime(Fix64 deltaTimeSeconds, int subStepCount)
         {
             this.SubStepCount = subStepCount;
             this.DeltaTime = deltaTimeSeconds / (Fix64)SubStepCount;
         }
 
-        /// <summary>
-        /// Fixed update delta time for body integration. 
-        /// Defaults to Config.DEFAULT_DELTA_TIME.
-        /// </summary>
-        public Fix64 DeltaTime { get; private set; }
-
-        public Fix64 WorldScale { get { return _worldScale; } set{
-            _worldScale = value;
-            Console.WriteLine("HUH?? " + ((decimal)1 / (decimal)value) + "VS" + (Fix64)((decimal)1 / (decimal)value));
-            InvWorldScale = (Fix64)((decimal)1 / (decimal)value);
+        public Fix64 WorldScale { get { return this._worldScale; } set{
+            this._worldScale = value;
+            this.InvWorldScale = (Fix64)((decimal)1 / (decimal)value);
         } }
         private Fix64 _worldScale = Fix64.One;
-        public Fix64 InvWorldScale{get; private set;} = Fix64.One;
+        public Fix64 InvWorldScale {get; private set;} = Fix64.One;
 
         /// <summary>
         /// Number of iterations when updating the world.
@@ -99,7 +70,6 @@ namespace Volatile
             }
         }
         
-        internal Fix64 Elasticity { get; private set; } = Fix64.One;
         public VoltVector2 LinearDamping { get; set; }
         public Fix64 AngularDamping { get; set; }
         public VoltVector2 Gravity { get; set; }
@@ -122,6 +92,9 @@ namespace Volatile
         private IVoltPool<Contact> contactPool;
         private IVoltPool<Manifold> manifoldPool;
 
+        internal bool RequireDynamicSort = false;
+
+        public VoltWorld() : this(VoltConfig.DEFAULT_DAMPING) {}
         public VoltWorld(Fix64 damping)
         {
             this.LinearDamping = new VoltVector2(damping);
@@ -148,172 +121,6 @@ namespace Volatile
             this.contactPool = new VoltPool<Contact>();
             this.manifoldPool = new VoltPool<Manifold>();
         }
-
-        public VoltWorld() : this(VoltConfig.DEFAULT_DAMPING)
-        {
-        }
-
-        /// <summary>
-        /// Creates a new polygon shape from world-space vertices.
-        /// </summary>
-        public VoltPolygon CreatePolygonWorldSpace(
-          VoltVector2[] worldVertices, Fix64 density, Fix64 friction, Fix64 restitution)
-        {
-            for (int i = 0; i < worldVertices.Count(); i++)
-                worldVertices[i] *= InvWorldScale;
-            VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
-            polygon.InitializeFromWorldVertices(
-              worldVertices,
-              density,
-              friction,
-              restitution);
-            return polygon;
-        }
-
-        public VoltPolygon CreatePolygonWorldSpace(VoltVector2[] worldVertices, Fix64 density)
-        {
-            return CreatePolygonWorldSpace(worldVertices, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
-        }
-
-        public VoltPolygon CreatePolygonWorldSpace(VoltVector2[] worldVertices)
-        {
-            return CreatePolygonWorldSpace(worldVertices, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
-        }
-
-        /// <summary>
-        /// Creates a new polygon shape from body-space vertices.
-        /// </summary>
-        public VoltPolygon CreatePolygonBodySpace(
-          VoltVector2[] bodyVertices, Fix64 density, Fix64 friction, Fix64 restitution)
-        {
-            for (int i = 0; i < bodyVertices.Count(); i++)
-                bodyVertices[i] *= InvWorldScale;
-            VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
-            polygon.InitializeFromBodyVertices(
-              bodyVertices,
-              density,
-              friction,
-              restitution);
-            return polygon;
-        }
-        
-        public VoltPolygon CreatePolygonBodySpace(VoltVector2[] bodyVertices, Fix64 density)
-        {
-            return CreatePolygonBodySpace(bodyVertices, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
-        }
-        
-        public VoltPolygon CreatePolygonBodySpace(VoltVector2[] bodyVertices)
-        {
-            return CreatePolygonBodySpace(bodyVertices, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
-        }
-
-        /// <summary>
-        /// Creates a new circle shape from a world-space origin.
-        /// </summary>
-        public VoltCircle CreateCircleWorldSpace(
-          VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density, Fix64 friction, Fix64 restitution)
-        {
-            worldSpaceOrigin *= InvWorldScale;
-            radius *= InvWorldScale;
-            VoltCircle circle = (VoltCircle)this.circlePool.Allocate();
-            circle.InitializeFromWorldSpace(
-              worldSpaceOrigin,
-              radius,
-              density,
-              friction,
-              restitution);
-            return circle;
-        }
-
-        public VoltCircle CreateCircleWorldSpace(VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density)
-        {
-            return CreateCircleWorldSpace(worldSpaceOrigin, radius, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
-        }
-        
-        public VoltCircle CreateCircleWorldSpace(VoltVector2 worldSpaceOrigin, Fix64 radius)
-        {
-            return CreateCircleWorldSpace(worldSpaceOrigin, radius, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
-        }
-
-        /// <summary>
-        /// Creates a new static body and adds it to the world.
-        /// </summary>
-        public VoltBody CreateStaticBody(
-          VoltVector2 position,
-          Fix64 radians,
-          params VoltShape[] shapesToAdd)
-        {
-            VoltBody body = this.bodyPool.Allocate();
-            body.InitializeStatic(position, radians, shapesToAdd);
-            this.AddBodyInternal(body);
-            return body;
-        }
-
-        /// <summary>
-        /// Creates a new dynamic body and adds it to the world.
-        /// </summary>
-        public VoltBody CreateDynamicBody(
-          VoltVector2 position,
-          Fix64 radians,
-          params VoltShape[] shapesToAdd)
-        {
-            VoltBody body = this.bodyPool.Allocate();
-            body.InitializeDynamic(position, radians, shapesToAdd);
-            this.AddBodyInternal(body);
-            return body;
-        }
-
-        /// <summary>
-        /// Adds a body to the world. Used for reintroducing bodies that 
-        /// have been removed. For new bodies, use CreateBody.
-        /// </summary>
-        public void AddBody(
-          VoltBody body,
-          VoltVector2 position,
-          Fix64 radians)
-        {
-#if DEBUG
-            VoltDebug.Assert(body.IsInitialized);
-#endif
-            VoltDebug.Assert(body.World == null);
-            this.AddBodyInternal(body);
-            body.Set(position, radians);
-        }
-
-        /// <summary>
-        /// Removes a body from the world. The body will be partially reset so it
-        /// can be added later. The pointer is still valid and the body can be
-        /// returned to the world using AddBody.
-        /// </summary>
-        public void RemoveBody(VoltBody body)
-        {
-            VoltDebug.Assert(body.World == this);
-
-            body.PartialReset();
-
-            this.RemoveBodyInternal(body);
-        }
-
-        /// <summary>
-        /// Removes a body from the world and deallocates it. The pointer is
-        /// invalid after this point.
-        /// </summary>
-        public void DestroyBody(VoltBody body)
-        {
-            VoltDebug.Assert(body.World == this);
-
-/*             if (body.ID == TotalBodyCount - 1)
-            {
-                TotalBodyCount--;
-            } */
-
-            body.FreeShapes();
-
-            this.RemoveBodyInternal(body);
-            this.FreeBody(body);
-        }
-
-        public bool RequireDynamicSort = false;
 
         /// <summary>
         /// Ticks the world, updating all dynamic bodies and resolving collisions.
@@ -450,6 +257,166 @@ namespace Volatile
         }
 
         /// <summary>
+        /// Creates a new polygon shape from world-space vertices.
+        /// </summary>
+        public VoltPolygon CreatePolygonWorldSpace(
+          VoltVector2[] worldVertices, Fix64 density, Fix64 friction, Fix64 restitution)
+        {
+            for (int i = 0; i < worldVertices.Count(); i++)
+                worldVertices[i] *= this.InvWorldScale;
+            VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
+            polygon.InitializeFromWorldVertices(
+              worldVertices,
+              density,
+              friction,
+              restitution);
+            return polygon;
+        }
+
+        public VoltPolygon CreatePolygonWorldSpace(VoltVector2[] worldVertices, Fix64 density)
+        {
+            return CreatePolygonWorldSpace(worldVertices, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+        }
+
+        public VoltPolygon CreatePolygonWorldSpace(VoltVector2[] worldVertices)
+        {
+            return CreatePolygonWorldSpace(worldVertices, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+        }
+
+        /// <summary>
+        /// Creates a new polygon shape from body-space vertices.
+        /// </summary>
+        public VoltPolygon CreatePolygonBodySpace(
+          VoltVector2[] bodyVertices, Fix64 density, Fix64 friction, Fix64 restitution)
+        {
+            for (int i = 0; i < bodyVertices.Count(); i++)
+                bodyVertices[i] *= this.InvWorldScale;
+            VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
+            polygon.InitializeFromBodyVertices(
+              bodyVertices,
+              density,
+              friction,
+              restitution);
+            return polygon;
+        }
+        
+        public VoltPolygon CreatePolygonBodySpace(VoltVector2[] bodyVertices, Fix64 density)
+        {
+            return CreatePolygonBodySpace(bodyVertices, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+        }
+        
+        public VoltPolygon CreatePolygonBodySpace(VoltVector2[] bodyVertices)
+        {
+            return CreatePolygonBodySpace(bodyVertices, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+        }
+
+        /// <summary>
+        /// Creates a new circle shape from a world-space origin.
+        /// </summary>
+        public VoltCircle CreateCircleWorldSpace(
+          VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density, Fix64 friction, Fix64 restitution)
+        {
+            worldSpaceOrigin *= InvWorldScale;
+            radius *= InvWorldScale;
+            VoltCircle circle = (VoltCircle)this.circlePool.Allocate();
+            circle.InitializeFromWorldSpace(
+              worldSpaceOrigin,
+              radius,
+              density,
+              friction,
+              restitution);
+            return circle;
+        }
+
+        public VoltCircle CreateCircleWorldSpace(VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density)
+        {
+            return CreateCircleWorldSpace(worldSpaceOrigin, radius, density, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+        }
+        
+        public VoltCircle CreateCircleWorldSpace(VoltVector2 worldSpaceOrigin, Fix64 radius)
+        {
+            return CreateCircleWorldSpace(worldSpaceOrigin, radius, VoltConfig.DEFAULT_DENSITY, VoltConfig.DEFAULT_FRICTION, VoltConfig.DEFAULT_RESTITUTION);
+        }
+
+        /// <summary>
+        /// Creates a new static body and adds it to the world.
+        /// </summary>
+        public VoltBody CreateStaticBody(
+          VoltVector2 position,
+          Fix64 radians,
+          params VoltShape[] shapesToAdd)
+        {
+            VoltBody body = this.bodyPool.Allocate();
+            body.InitializeStatic(position, radians, shapesToAdd);
+            this.AddBodyInternal(body);
+            return body;
+        }
+
+        /// <summary>
+        /// Creates a new dynamic body and adds it to the world.
+        /// </summary>
+        public VoltBody CreateDynamicBody(
+          VoltVector2 position,
+          Fix64 radians,
+          params VoltShape[] shapesToAdd)
+        {
+            VoltBody body = this.bodyPool.Allocate();
+            body.InitializeDynamic(position, radians, shapesToAdd);
+            this.AddBodyInternal(body);
+            return body;
+        }
+
+        /// <summary>
+        /// Adds a body to the world. Used for reintroducing bodies that 
+        /// have been removed. For new bodies, use CreateBody.
+        /// </summary>
+        public void AddBody(
+          VoltBody body,
+          VoltVector2 position,
+          Fix64 radians)
+        {
+#if DEBUG
+            VoltDebug.Assert(body.IsInitialized);
+#endif
+            VoltDebug.Assert(body.World == null);
+            this.AddBodyInternal(body);
+            body.Set(position, radians);
+        }
+
+        /// <summary>
+        /// Removes a body from the world. The body will be partially reset so it
+        /// can be added later. The pointer is still valid and the body can be
+        /// returned to the world using AddBody.
+        /// </summary>
+        public void RemoveBody(VoltBody body)
+        {
+            VoltDebug.Assert(body.World == this);
+
+            body.PartialReset();
+
+            this.RemoveBodyInternal(body);
+        }
+
+        /// <summary>
+        /// Removes a body from the world and deallocates it. The pointer is
+        /// invalid after this point.
+        /// </summary>
+        public void DestroyBody(VoltBody body)
+        {
+            VoltDebug.Assert(body.World == this);
+
+/*             if (body.ID == TotalBodyCount - 1)
+            {
+                TotalBodyCount--;
+            } */
+
+            body.FreeShapes();
+
+            this.RemoveBodyInternal(body);
+            this.FreeBody(body);
+        }
+
+        /// <summary>
         /// Finds all bodies containing a given point.
         /// 
         /// Subsequent calls to other Query functions (Point, Circle, Bounds) will
@@ -459,7 +426,7 @@ namespace Volatile
           VoltVector2 point,
           VoltBodyFilter filter = null)
         {
-            point *= InvWorldScale;
+            point *= this.InvWorldScale;
             return QueryPointInternal(point, filter);
         }
 
@@ -493,8 +460,8 @@ namespace Volatile
           Fix64 radius,
           VoltBodyFilter filter = null)
         {
-            origin *= InvWorldScale;
-            radius *= InvWorldScale;
+            origin *= this.InvWorldScale;
+            radius *= this.InvWorldScale;
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
             this.dynamicBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
@@ -528,7 +495,7 @@ namespace Volatile
           VoltAABB aabb,
           VoltBodyFilter filter = null)
         {
-            aabb = new VoltAABB(aabb.Center * InvWorldScale, aabb.Extent * InvWorldScale);
+            aabb = new VoltAABB(aabb.Center * this.InvWorldScale, aabb.Extent * this.InvWorldScale);
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
@@ -555,7 +522,7 @@ namespace Volatile
           VoltAABB aabb,
           VoltBodyFilter filter = null)
         {
-            aabb = new VoltAABB(aabb.Center * InvWorldScale, aabb.Extent * InvWorldScale);
+            aabb = new VoltAABB(aabb.Center * this.InvWorldScale, aabb.Extent * this.InvWorldScale);
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
@@ -580,7 +547,7 @@ namespace Volatile
           ref VoltRayResult result,
           VoltBodyFilter filter = null)
         {
-            ray = new VoltRayCast(ray.origin * InvWorldScale, (ray.origin + ray.direction * ray.distance) * InvWorldScale);
+            ray = new VoltRayCast(ray.origin * this.InvWorldScale, (ray.origin + ray.direction * ray.distance) * this.InvWorldScale);
             this.reusableBuffer.Clear();
             this.staticBroadphase.RayCast(ref ray, this.reusableBuffer);
             this.dynamicBroadphase.RayCast(ref ray, this.reusableBuffer);
@@ -608,8 +575,8 @@ namespace Volatile
           ref VoltRayResult result,
           VoltBodyFilter filter = null)
         {
-            ray = new VoltRayCast(ray.origin * InvWorldScale, (ray.origin + ray.direction * ray.distance) * InvWorldScale);
-            radius = radius * InvWorldScale;
+            ray = new VoltRayCast(ray.origin * this.InvWorldScale, (ray.origin + ray.direction * ray.distance) * this.InvWorldScale);
+            radius = radius * this.InvWorldScale;
             this.reusableBuffer.Clear();
             this.staticBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);
             this.dynamicBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);
@@ -660,22 +627,6 @@ namespace Volatile
         }
 
         public static List<VoltVector2> contactPoints = new List<VoltVector2>();
-
-        /// <summary>
-        /// Identifies collisions for a single body. Does not keep track of 
-        /// symmetrical duplicates (they could be counted twice).
-        /// </summary>
-        private void BroadPhase(VoltBody query, bool collideDynamic = false)
-        {
-            VoltDebug.Assert(query.IsStatic == false);
-
-            this.reusableBuffer.Clear();
-            this.staticBroadphase.QueryOverlap(query.AABB, this.reusableBuffer);
-            if (collideDynamic)
-                this.dynamicBroadphase.QueryOverlap(query.AABB, this.reusableBuffer);
-
-            this.TestBuffer(query);
-        }
 
         private void TestBuffer(VoltBody query)
         {
@@ -756,17 +707,34 @@ namespace Volatile
                     break;
             }
         }
-
-        private VoltCircle CreateCircle()
-        {
-            return new VoltCircle();
-        }
-
-        private VoltPolygon CreatePolygon()
-        {
-            return new VoltPolygon();
-        }
         #endregion
+        #endregion
+
+        #region Helper Filters
+        public static bool FilterNone(VoltBody body)
+        {
+            return true;
+        }
+
+        public static bool FilterAll(VoltBody body)
+        {
+            return false;
+        }
+
+        public static bool FilterStatic(VoltBody body)
+        {
+            return (body.IsStatic == false);
+        }
+
+        public static bool FilterDynamic(VoltBody body)
+        {
+            return body.IsStatic;
+        }
+
+        public static VoltBodyFilter FilterExcept(VoltBody exception)
+        {
+            return ((body) => body != exception);
+        }
         #endregion
     }
 }
