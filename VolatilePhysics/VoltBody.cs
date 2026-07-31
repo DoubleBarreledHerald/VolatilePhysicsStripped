@@ -273,7 +273,7 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (IsFixedAngle) return;
-      this.AngularVelocity -= torque * World.DeltaTime * InvInertia;
+      this.AngularVelocity -= torque * InvInertia;
       CheckWakeUp();
     }
 
@@ -281,7 +281,7 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (IsFixedPosition) return;
-      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
+      this.InternalLinearVelocity += force * InvMass * World.InvWorldScale;
       CheckWakeUp();
     }
 
@@ -289,8 +289,8 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (IsFixedPosition) return;
-      this.InternalLinearVelocity += force * World.DeltaTime * InvMass * World.InvWorldScale;
-      this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * World.DeltaTime * InvMass;
+      this.InternalLinearVelocity += force * InvMass * World.InvWorldScale;
+      this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * InvMass;
       CheckWakeUp();
     }
 
