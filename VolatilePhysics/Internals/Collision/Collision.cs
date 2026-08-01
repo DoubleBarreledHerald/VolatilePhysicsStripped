@@ -108,6 +108,22 @@ namespace Volatile
       VoltCircle circ,
       VoltPolygon poly)
     {
+      switch (VoltConfig.SOLVER_TYPE)
+      {
+        case VoltConfig.SolverType.Fast:
+          return FAST_Circle_Polygon(world, circ, poly);
+        case VoltConfig.SolverType.SAT:
+          return SAT_Circle_Polygon(world, circ, poly);
+        default:
+          return FAST_Circle_Polygon(world, circ, poly);
+      }
+    }
+
+    private static Manifold FAST_Circle_Polygon(
+      VoltWorld world,
+      VoltCircle circ,
+      VoltPolygon poly)
+    {
       // Get the axis on the polygon closest to the circle's origin
       Fix64 penetration;
       int index =
@@ -137,6 +153,36 @@ namespace Volatile
       VoltVector2 pos =
         circ.worldSpaceOrigin - (circ.radius + penetration / (Fix64)2) * axis.Normal;
       manifold.AddContact(pos, -axis.Normal, penetration);
+      return manifold;
+    }
+
+    private static Manifold SAT_Circle_Polygon(
+      VoltWorld world,
+      VoltCircle circ,
+      VoltPolygon poly)
+    {
+      Manifold manifold = 
+        world.AllocateManifold().Assign(world, circ, poly);
+      
+      if (CircleToPolySAT(circ.Body, circ, poly.Body, poly, out VoltVector2 normal, out Fix64 penetration))
+      {
+        VoltVector2 centerA = circ.worldSpaceOrigin;
+        VoltVector2 centerB = FindArithmeticMean(poly.worldVertices);
+				// Ensure normal is always pointing A->B
+				// CollisionConstraint expects this because it applies impulse from A->B in normal direction
+				// If the normal does not point A->B, it will pull them towards each other instead of acting repulsive
+				if (VoltVector2.Dot(normal, centerB - centerA) < Fix64.Zero) {
+					normal = -normal;
+				}
+        
+        ClipCircleToPoly(circ.Body, circ, poly.Body, poly, normal, out List<VoltVector2> finalPoints);
+
+        foreach (VoltVector2 voltVector2 in finalPoints)
+        {
+          manifold.AddContact(voltVector2, normal, penetration);
+        }
+      }
+
       return manifold;
     }
 
@@ -651,8 +697,57 @@ namespace Volatile
       }
     }
 
-    public static bool PolyToPolySAT(VoltVector2[] verticesA, VoltVector2[] verticesB, out VoltVector2 normal, out Fix64 penetration, out bool referenceIsA, out int referenceEdgeIndex)
-    {
+    private static bool CircleToPolySAT(VoltBody bodyA, VoltCircle shapeA, VoltBody objB, VoltPolygon shapeB, out VoltVector2 normal, out Fix64 penetration) {
+      normal = VoltVector2.zero;
+      penetration = Fix64.Zero;
+
+      Fix64 minPen = Fix64.MaxValue;
+      VoltVector2 circlePos = shapeA.worldSpaceOrigin;
+      VoltVector2[] verts = shapeB.worldVertices;
+      Fix64 minA, maxA, minB, maxB;
+      Fix64 pen;
+      VoltVector2[] normals = GetNormals(verts);
+
+      // Normal SAT
+      foreach (VoltVector2 n in normals) {
+        ProjectVertices(verts, n, out minA, out maxA);
+        minB = VoltVector2.Dot(circlePos, n) - shapeA.radius;
+        maxB = VoltVector2.Dot(circlePos, n) + shapeA.radius;
+        if (minA > maxB || minB > maxA) return false; // Found separating axis
+
+        pen = VoltMath.Min(maxA, maxB) - VoltMath.Max(minA, minB);
+        if (pen < minPen) {
+          minPen = pen;
+          normal = n;
+        }
+      }
+
+      // Special case, closest point is vertex rather than an edge
+      VoltVector2 closestVert = verts[0];
+      Fix64 minDist = (closestVert - circlePos).Length();
+      foreach (VoltVector2 v in verts) {
+        Fix64 d = (v - circlePos).Length();
+        if (d < minDist) { closestVert = v; minDist = d; }
+      }
+      VoltVector2 axis = (closestVert - circlePos).normalized;
+      ProjectVertices(verts, axis, out minA, out maxA);
+      Fix64 cProj = VoltVector2.Dot(circlePos, axis);
+      minB = cProj - shapeA.radius;
+      maxB = cProj + shapeA.radius;
+      if (minA > maxB || minB > maxA) return false;		// Separating axis on circle edge
+
+      pen = VoltMath.Min(maxA, maxB) - VoltMath.Max(minA, minB);
+      if (pen < minPen) {
+        minPen = pen;
+        normal = axis;
+      }
+
+      penetration = minPen;
+      return true;
+    }
+
+    private static bool PolyToPolySAT(VoltVector2[] verticesA, VoltVector2[] verticesB, out VoltVector2 normal, out Fix64 penetration, out bool referenceIsA, out int referenceEdgeIndex)
+      {
       normal = VoltVector2.zero;
       penetration = Fix64.MaxValue;
       referenceIsA = true;
@@ -800,17 +895,6 @@ namespace Volatile
       // Keep points that are behind the reference face, plus speculative slop like Box2D
       finalPoints = clippedPoints.FindAll(
         v => VoltVector2.Dot(n, v - a1) <= VoltConfig.ResolveSlop);
-
-      //TODO Finish after contact constraints
-		  /* // Box2D style feature IDs: combine object/shape IDs with vertex indices
-      int i11 = referenceEdgeIndex; // ref edge start vertex
-      int i12 = (i11 + 1) % referenceVerts.Length; // ref edge end vertex
-      int i21 = (incidentIndex + 1) % incidentVerts.Length; // incident edge start vertex (b1)
-      int i22 = incidentIndex;
-      var prefix =
-        ((referenceBody.ID & 0xFF) << 24) |
-        ((incidentObject.ID & 0xFF) << 16) |
-        ((referenceBody.ID)) */
     }
 
     private static List<VoltVector2> ClipLineSegmentToLine(VoltVector2 p1, VoltVector2 p2, VoltVector2 normal, VoltVector2 offset) {
@@ -829,6 +913,18 @@ namespace Volatile
         clippedPoints.Add(intersectionPt);
       }
       return clippedPoints; // Returns 2 or 0 points
+    }
+
+    static void ClipCircleToPoly(VoltBody objA, VoltCircle shapeA, VoltBody objB, VoltPolygon shapeB, VoltVector2 normal, out List<VoltVector2> finalPoints) {
+      VoltVector2 circleCenter = shapeA.worldSpaceOrigin;
+      VoltVector2 centerB = FindArithmeticMean(shapeB.worldVertices);
+      VoltVector2 dirToPoly = centerB - circleCenter;
+      // Choose sign so that we always march from the circle center towards the polygon along the normal.
+      int sign = Fix64.Sign(VoltVector2.Dot(normal, dirToPoly)); // default to 1 if zero
+      if (sign == 0) sign = 1;
+      VoltVector2 point = circleCenter + (normal * (shapeA.radius * (Fix64)sign));
+      
+      finalPoints = new List<VoltVector2>() { point };
     }
 
     private static VoltVector2[] GetNormals(VoltVector2[] vertices)
