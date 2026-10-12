@@ -759,19 +759,28 @@ namespace Volatile
       // Apply damping
       if (!IsFixedPosition)
       {
-        Fix64 xVelocity = this.InternalLinearVelocity.x;
-          xVelocity -= this.InternalLinearVelocity.x * this.LinearDamping.x * World.DeltaTime;
-          xVelocity -= this.InternalLinearVelocity.x * this.World.LinearDamping.x * World.DeltaTime;
-        Fix64 yVelocity = this.InternalLinearVelocity.y;
-          yVelocity -= this.InternalLinearVelocity.y * this.LinearDamping.y * World.DeltaTime;
-          yVelocity -= this.InternalLinearVelocity.y * this.World.LinearDamping.y * World.DeltaTime;
+        Fix64 xSign = (Fix64)Fix64.Sign(this.InternalLinearVelocity.x);
+        Fix64 xVelocity = Fix64.Abs(this.InternalLinearVelocity.x);
+          xVelocity -= xVelocity * this.LinearDamping.x * World.DeltaTime;
+          xVelocity -= xVelocity * this.World.LinearDamping.x * World.DeltaTime;
+          xVelocity = VoltMath.Max(xVelocity, Fix64.Zero);
+          
+        Fix64 ySign = (Fix64)Fix64.Sign(this.InternalLinearVelocity.y);
+        Fix64 yVelocity = Fix64.Abs(this.InternalLinearVelocity.y);
+          yVelocity -= yVelocity * this.LinearDamping.y * World.DeltaTime;
+          yVelocity -= yVelocity * this.World.LinearDamping.y * World.DeltaTime;
+          yVelocity = VoltMath.Max(yVelocity, Fix64.Zero);
 
-        this.InternalLinearVelocity = new VoltVector2(xVelocity, yVelocity);
+        this.InternalLinearVelocity = new VoltVector2(xVelocity * xSign, yVelocity * ySign);
       }
+
       if (!IsFixedAngle)
       {
-        this.AngularVelocity -= this.AngularVelocity * this.AngularDamping * World.DeltaTime;
-        this.AngularVelocity -= this.AngularVelocity * this.World.AngularDamping * World.DeltaTime;
+        Fix64 angleSign = (Fix64)Fix64.Sign(this.AngularVelocity);
+        Fix64 aVelocity = Fix64.Abs(this.AngularVelocity);
+          aVelocity -= aVelocity * this.AngularDamping * World.DeltaTime;
+          aVelocity -= aVelocity * this.World.AngularDamping * World.DeltaTime;
+          this.AngularVelocity = aVelocity;
       }
     }
 
