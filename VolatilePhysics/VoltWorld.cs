@@ -582,12 +582,9 @@ namespace Volatile
                         this.reusableOutput.Add(body);
             }
 
-            Console.WriteLine("Working: Overlap" + this.reusableOutput.Count);
-
             for (int i = 0; i < this.reusableOutput.Count; i++)
             {
                 VoltBody body = this.reusableOutput[i];
-                Console.WriteLine("Working: shapes" + body.shapes.Length);
                 for (int q = 0; q < body.shapes.Length; q++)
                 {
                     Intersection inter = Query.Dispatch(this, shape, body.shapes[q]);
