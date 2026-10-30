@@ -119,40 +119,26 @@ namespace Volatile
       }
     }
 
-    private static Manifold FAST_Circle_Polygon(
+    internal static Manifold FAST_Circle_Polygon(
       VoltWorld world,
       VoltCircle circ,
       VoltPolygon poly)
     {
-      // Get the axis on the polygon closest to the circle's origin
-      Fix64 penetration;
-      int index =
-        Collision.FindAxisMaxPenetration(
-          circ.worldSpaceOrigin,
-          circ.radius,
-          poly,
-          out penetration);
 
-      if (index < 0)
+      if (!CircleToPolyFast(
+        circ, poly,
+        out List<VoltVector2> contacts,
+        out VoltVector2 normal, out Fix64 penetration
+      ))
+      {
         return null;
+      }
 
-      VoltVector2 a, b;
-      poly.GetEdge(index, out a, out b);
-      Axis axis = poly.GetWorldAxis(index);
-
-      // If the circle is past one of the two vertices, check it like
-      // a circle-circle intersection where the vertex has radius 0
-      Fix64 d = VoltMath.Cross(axis.Normal, circ.worldSpaceOrigin);
-      if (d > VoltMath.Cross(axis.Normal, a))
-        return Collision.TestCircles(world, circ, poly, a, Fix64.Zero);
-      if (d < VoltMath.Cross(axis.Normal, b))
-        return Collision.TestCircles(world, circ, poly, b, Fix64.Zero);
+      VoltVector2 pos = contacts[0];
 
       // Build the collision Manifold
       Manifold manifold = world.AllocateManifold().Assign(world, circ, poly);
-      VoltVector2 pos =
-        circ.worldSpaceOrigin - (circ.radius + penetration / (Fix64)2) * axis.Normal;
-      manifold.AddContact(pos, -axis.Normal, penetration);
+      manifold.AddContact(pos, -normal, penetration);
       return manifold;
     }
 
@@ -161,27 +147,12 @@ namespace Volatile
       VoltCircle circ,
       VoltPolygon poly)
     {
+      if (!CircleToPolySAT(circ, poly, out List<VoltVector2> contacts, out VoltVector2 normal, out Fix64 penetration))
+        return null;
+
       Manifold manifold = 
         world.AllocateManifold().Assign(world, circ, poly);
-      
-      if (CircleToPolySAT(circ.Body, circ, poly.Body, poly, out VoltVector2 normal, out Fix64 penetration))
-      {
-        VoltVector2 centerA = circ.worldSpaceOrigin;
-        VoltVector2 centerB = FindArithmeticMean(poly.worldVertices);
-				// Ensure normal is always pointing A->B
-				// CollisionConstraint expects this because it applies impulse from A->B in normal direction
-				// If the normal does not point A->B, it will pull them towards each other instead of acting repulsive
-				if (VoltVector2.Dot(normal, centerB - centerA) < Fix64.Zero) {
-					normal = -normal;
-				}
-        
-        ClipCircleToPoly(circ.Body, circ, poly.Body, poly, normal, out List<VoltVector2> finalPoints);
-
-        foreach (VoltVector2 voltVector2 in finalPoints)
-        {
-          manifold.AddContact(voltVector2, normal, penetration);
-        }
-      }
+      AddToManifold(manifold, contacts, normal, penetration);
 
       return manifold;
     }
@@ -207,24 +178,29 @@ namespace Volatile
       VoltPolygon polyA,
       VoltPolygon polyB)
     {
-      Axis a1, a2;
-      if (Collision.FindMinSepAxis(polyA, polyB, out a1) == false)
-        return null;
-      if (Collision.FindMinSepAxis(polyB, polyA, out a2) == false)
-        return null;
 
-      // We will use poly1's axis, so we may need to swap
-      if (a2.Width > a1.Width)
-      {
-        VoltUtil.Swap(ref polyA, ref polyB);
-        VoltUtil.Swap(ref a1, ref a2);
-      }
+      if (!PolyToPolyFast(polyA, polyB,
+      out List<VoltVector2> contacts, out VoltVector2 normal, out Fix64 penetration))
+        return null;
 
       // Build the collision Manifold
       Manifold manifold = 
         world.AllocateManifold().Assign(world, polyA, polyB);
-      Collision.FindVerts(polyA, polyB, a1.Normal, a1.Width, manifold);
+      AddToManifold(manifold, contacts, normal, penetration);
       return manifold;
+    }
+
+    private static void AddToManifold(
+      Manifold manifold,
+      List<VoltVector2> contacts,
+      VoltVector2 normal,
+      Fix64 penetration)
+    {
+      foreach (VoltVector2 contact in contacts)
+      {
+        if (!manifold.AddContact(contact, normal, penetration))
+          return;
+      }
     }
 
     private static Manifold SAT_Polygon_Polygon(VoltWorld world,
@@ -234,33 +210,15 @@ namespace Volatile
       Manifold manifold = 
         world.AllocateManifold().Assign(world, polyA, polyB);
 
-      if (PolyToPolySAT(polyA.worldVertices, polyB.worldVertices,
-      out VoltVector2 normal, out Fix64 penetration,
-      out bool referenceIsA, out int referenceEdgeIndex)) {
+      if (!PolyToPolySAT(polyA, polyB,
+      out List<VoltVector2> finalPoints, out VoltVector2 normal, out Fix64 penetration))
+      {
+        return manifold;
+      }
 
-        VoltVector2 centerA = FindArithmeticMean(polyA.worldVertices);
-        VoltVector2 centerB = FindArithmeticMean(polyB.worldVertices);
-				// Ensure normal is always pointing A->B
-				// CollisionConstraint expects this because it applies impulse from A->B in normal direction
-				// If the normal does not point A->B, it will pull them towards each other instead of acting repulsive
-				if (VoltVector2.Dot(normal, centerB - centerA) < Fix64.Zero) {
-					normal = -normal;
-				}
-
-				// Determine clipped contact points
-        List<VoltVector2> finalPoints;
-        if (referenceIsA)
-        {
-          ClipPolyToPoly(polyA.Body, polyA, polyB.Body, polyB, referenceEdgeIndex, out finalPoints);
-        } else
-        {
-          ClipPolyToPoly(polyB.Body, polyB, polyA.Body, polyA, referenceEdgeIndex, out finalPoints);
-        }
-
-        foreach (VoltVector2 voltVector2 in finalPoints)
-        {
-          manifold.AddContact(voltVector2, normal, penetration);
-        }
+      foreach (VoltVector2 voltVector2 in finalPoints)
+      {
+        manifold.AddContact(voltVector2, normal, penetration);
       }
 
       return manifold;
@@ -569,26 +527,15 @@ namespace Volatile
       VoltVector2 overrideBCenter, // For testing vertices in circles
       Fix64 overrideBRadius)
     {
-      VoltVector2 r = overrideBCenter - shapeA.worldSpaceOrigin;
-      Fix64 min = shapeA.radius + overrideBRadius;
-      Fix64 distSq = r.sqrMagnitude;
-
-      if (distSq >= min * min)
+      if (!CircleToCircle(
+          shapeA.worldSpaceOrigin, shapeA.radius, overrideBCenter, overrideBRadius,
+          out List<VoltVector2> pos, out VoltVector2 normal, out Fix64 penetration))
         return null;
-
-      Fix64 dist = VoltMath.Sqrt(distSq);
-
-      // 최소값을 지정하여 divide by zero 방지
-      Fix64 distInv = Fix64.One / VoltMath.Max(dist, min / (Fix64)10);
-
-      VoltVector2 pos =
-        shapeA.worldSpaceOrigin +
-        (Fix64.One / (Fix64)2 + distInv * (shapeA.radius - min / (Fix64)2)) * r;
 
       // Build the collision Manifold
       Manifold manifold = 
         world.AllocateManifold().Assign(world, shapeA, shapeB);
-      manifold.AddContact(pos, distInv * r, dist - min);
+      manifold.AddContact(pos[0], normal, penetration);
       return manifold;
     }
 
@@ -620,7 +567,7 @@ namespace Volatile
     }
 
     /// <summary>
-    /// Add contacts for penetrating vertices. Note that this does not handle
+    /// Get contacts for penetrating vertices. Note that this does not handle
     /// cases where an overlap was detected, but no vertices fall inside the
     /// opposing polygon (like a Star of David). For this we have a fallback.
     /// 
@@ -631,17 +578,17 @@ namespace Volatile
       VoltPolygon poly2,
       VoltVector2 normal,
       Fix64 penetration,
-      Manifold manifold)
+      out List<VoltVector2> contacts)
     {
       bool found = false;
+      contacts = new List<VoltVector2>();
 
       for (int i = 0; i < poly1.countWorld; i++)
       {
         VoltVector2 vertex = poly1.worldVertices[i];
         if (poly2.ContainsPoint(vertex) == true)
         {
-          if (manifold.AddContact(vertex, normal, penetration) == false)
-            return;
+          contacts.Add(vertex);
           found = true;
           break;
         }
@@ -652,8 +599,7 @@ namespace Volatile
         VoltVector2 vertex = poly2.worldVertices[i];
         if (poly1.ContainsPoint(vertex) == true)
         {
-          if (manifold.AddContact(vertex, normal, penetration) == false)
-            return;
+          contacts.Add(vertex);
           found = true;
           break;
         }
@@ -661,7 +607,7 @@ namespace Volatile
 
       // Fallback to check the degenerate "Star of David" case
       if (found == false)
-        FindVertsFallback(poly1, poly2, normal, penetration, manifold);
+        FindVertsFallback(poly1, poly2, normal, penetration, out contacts);
     }
 
     /// <summary>
@@ -672,15 +618,16 @@ namespace Volatile
       VoltPolygon poly2,
       VoltVector2 normal,
       Fix64 penetration,
-      Manifold manifold)
+      out List<VoltVector2> contacts)
     {
+      contacts = new List<VoltVector2>();
+
       for (int i = 0; i < poly1.countWorld; i++)
       {
         VoltVector2 vertex = poly1.worldVertices[i];
         if (poly2.ContainsPointPartial(vertex, normal) == true)
         {
-          if (manifold.AddContact(vertex, normal, penetration) == false)
-            return;
+          contacts.Add(vertex);
           break;
         }
       }
@@ -690,20 +637,130 @@ namespace Volatile
         VoltVector2 vertex = poly2.worldVertices[i];
         if (poly1.ContainsPointPartial(vertex, -normal) == true)
         {
-          if (manifold.AddContact(vertex, normal, penetration) == false)
-            return;
+          contacts.Add(vertex);
           break;
         }
       }
     }
 
-    private static bool CircleToPolySAT(VoltBody bodyA, VoltCircle shapeA, VoltBody objB, VoltPolygon shapeB, out VoltVector2 normal, out Fix64 penetration) {
+    internal static bool CircleToCircle(
+      VoltCircle shapeA,
+      VoltCircle shapeB,
+      out List<VoltVector2> positions,
+      out VoltVector2 normal,
+      out Fix64 penetration)
+    {
+      return CircleToCircle(
+        shapeA.worldSpaceOrigin, shapeA.radius,
+        shapeB.worldSpaceOrigin, shapeB.radius,
+        out positions, out normal, out penetration);
+    }
+
+    internal static bool CircleToCircle(
+      VoltVector2 shapeAWorldOrigin,
+      Fix64 shapeARadius,
+      VoltVector2 shapeBWorldOrigin,
+      Fix64 shapeBRadius,
+      out List<VoltVector2> positions,
+      out VoltVector2 normal,
+      out Fix64 penetration)
+    {
+      VoltVector2 r = shapeBWorldOrigin - shapeAWorldOrigin;
+      Fix64 min = shapeARadius + shapeBRadius;
+      Fix64 distSq = r.sqrMagnitude;
+
+      if (distSq >= min * min)
+      {
+        positions = new List<VoltVector2>();
+        normal = VoltVector2.zero;
+        penetration = Fix64.Zero;
+        return false;
+      }
+
+      Fix64 dist = VoltMath.Sqrt(distSq);
+
+      // 최소값을 지정하여 divide by zero 방지
+      Fix64 distInv = Fix64.One / VoltMath.Max(dist, min / (Fix64)10);
+
+      VoltVector2 pos =
+        shapeAWorldOrigin +
+        (Fix64.One / (Fix64)2 + distInv * (shapeARadius - min / (Fix64)2)) * r;
+      positions = new List<VoltVector2>(){ pos };
+      normal = distInv * r;
+      penetration = dist - min;
+
+      return true;
+    }
+
+    internal static bool CircleToPolyFast(
+      VoltCircle circ,
+      VoltPolygon poly,
+      out List<VoltVector2> contacts,
+      out VoltVector2 normal,
+      out Fix64 penetration)
+    {
+      // Get the axis on the polygon closest to the circle's origin
+      int index =
+        Collision.FindAxisMaxPenetration(
+          circ.worldSpaceOrigin,
+          circ.radius,
+          poly,
+          out penetration);
+
+      if (index < 0)
+      {
+        normal = VoltVector2.zero;
+        contacts = new List<VoltVector2>();
+        return false;
+      }
+
+      Axis axis = poly.GetWorldAxis(index);
+
+      normal = axis.Normal;
+      contacts = new List<VoltVector2>(){
+        circ.worldSpaceOrigin - (circ.radius + penetration / (Fix64)2) * normal
+      };
+
+      VoltVector2 a, b;
+      VoltVector2 position;
+      poly.GetEdge(index, out a, out b);
+
+      // If the circle is past one of the two vertices, check it like
+      // a circle-circle intersection where the vertex has radius 0
+      Fix64 d = VoltMath.Cross(normal, circ.worldSpaceOrigin);
+      if (
+        d > VoltMath.Cross(normal, a) &&
+        !CircleToCircle(
+          circ.worldSpaceOrigin, circ.radius, a, Fix64.Zero,
+          out contacts, out normal, out penetration))
+        return true;
+      if (d < VoltMath.Cross(normal, b) && 
+        !CircleToCircle(
+          circ.worldSpaceOrigin, circ.radius, b, Fix64.Zero,
+          out contacts, out normal, out penetration))
+        return true;
+
+      position =
+        circ.worldSpaceOrigin - (circ.radius + penetration / (Fix64)2) * axis.Normal;
+      contacts.Add(position);
+      
+      return true;
+    }
+
+    internal static bool CircleToPolySAT(
+      VoltCircle circ,
+      VoltPolygon poly,
+      out List<VoltVector2> contacts,
+      out VoltVector2 normal,
+      out Fix64 penetration)
+    {
       normal = VoltVector2.zero;
       penetration = Fix64.Zero;
+      contacts = new List<VoltVector2>();
 
       Fix64 minPen = Fix64.MaxValue;
-      VoltVector2 circlePos = shapeA.worldSpaceOrigin;
-      VoltVector2[] verts = shapeB.worldVertices;
+      VoltVector2 circlePos = circ.worldSpaceOrigin;
+      VoltVector2[] verts = poly.worldVertices;
       Fix64 minA, maxA, minB, maxB;
       Fix64 pen;
       VoltVector2[] normals = GetNormals(verts);
@@ -711,8 +768,8 @@ namespace Volatile
       // Normal SAT
       foreach (VoltVector2 n in normals) {
         ProjectVertices(verts, n, out minA, out maxA);
-        minB = VoltVector2.Dot(circlePos, n) - shapeA.radius;
-        maxB = VoltVector2.Dot(circlePos, n) + shapeA.radius;
+        minB = VoltVector2.Dot(circlePos, n) - circ.radius;
+        maxB = VoltVector2.Dot(circlePos, n) + circ.radius;
         if (minA > maxB || minB > maxA) return false; // Found separating axis
 
         pen = VoltMath.Min(maxA, maxB) - VoltMath.Max(minA, minB);
@@ -732,8 +789,8 @@ namespace Volatile
       VoltVector2 axis = (closestVert - circlePos).normalized;
       ProjectVertices(verts, axis, out minA, out maxA);
       Fix64 cProj = VoltVector2.Dot(circlePos, axis);
-      minB = cProj - shapeA.radius;
-      maxB = cProj + shapeA.radius;
+      minB = cProj - circ.radius;
+      maxB = cProj + circ.radius;
       if (minA > maxB || minB > maxA) return false;		// Separating axis on circle edge
 
       pen = VoltMath.Min(maxA, maxB) - VoltMath.Max(minA, minB);
@@ -743,15 +800,66 @@ namespace Volatile
       }
 
       penetration = minPen;
+
+      VoltVector2 centerA = circ.worldSpaceOrigin;
+      VoltVector2 centerB = FindArithmeticMean(poly.worldVertices);
+      // Ensure normal is always pointing A->B
+      // CollisionConstraint expects this because it applies impulse from A->B in normal direction
+      // If the normal does not point A->B, it will pull them towards each other instead of acting repulsive
+      if (VoltVector2.Dot(normal, centerB - centerA) < Fix64.Zero) {
+        normal = -normal;
+      }
+      
+      ClipCircleToPoly(circ.Body, circ, poly.Body, poly, normal, out contacts);
+
       return true;
     }
 
-    private static bool PolyToPolySAT(VoltVector2[] verticesA, VoltVector2[] verticesB, out VoltVector2 normal, out Fix64 penetration, out bool referenceIsA, out int referenceEdgeIndex)
+    internal static bool PolyToPolyFast(
+      VoltPolygon polyA,
+      VoltPolygon polyB,
+      out List<VoltVector2> contacts,
+      out VoltVector2 normal,
+      out Fix64 penetration)
+    {
+      Axis a1, a2;
+      if ((Collision.FindMinSepAxis(polyA, polyB, out a1) == false) ||
+          (Collision.FindMinSepAxis(polyB, polyA, out a2) == false))
       {
+        normal = VoltVector2.zero;
+        penetration = Fix64.Zero;
+        contacts = new List<VoltVector2>();
+        return false;
+      }
+
+      // We will use poly1's axis, so we may need to swap
+      if (a2.Width > a1.Width)
+      {
+        VoltUtil.Swap(ref polyA, ref polyB);
+        VoltUtil.Swap(ref a1, ref a2);
+      }
+
+      normal = a1.Normal;
+      penetration = a1.Width;
+      Collision.FindVerts(polyA, polyB, normal, penetration, out contacts);
+      return true;
+    }
+
+    internal static bool PolyToPolySAT(
+      VoltPolygon polyA,
+      VoltPolygon polyB,
+      out List<VoltVector2> contacts,
+      out VoltVector2 normal,
+      out Fix64 penetration)
+    {
       normal = VoltVector2.zero;
       penetration = Fix64.MaxValue;
-      referenceIsA = true;
-      referenceEdgeIndex = 0;
+      bool referenceIsA = true;
+      int referenceEdgeIndex = 0;
+      contacts = new List<VoltVector2>();
+
+      VoltVector2[] verticesA = polyA.worldVertices;
+      VoltVector2[] verticesB = polyB.worldVertices;
 
       //Get Polygon Edge Normals
       VoltVector2[] normalsA = GetNormals(verticesA);
@@ -812,6 +920,24 @@ namespace Volatile
 
       penetration = referenceIsA ? -minSepA : -minSepB;
 
+      VoltVector2 centerA = FindArithmeticMean(verticesA);
+      VoltVector2 centerB = FindArithmeticMean(verticesB);
+      // Ensure normal is always pointing A->B
+      // CollisionConstraint expects this because it applies impulse from A->B in normal direction
+      // If the normal does not point A->B, it will pull them towards each other instead of acting repulsive
+      if (VoltVector2.Dot(normal, centerB - centerA) < Fix64.Zero) {
+        normal = -normal;
+      }
+      
+      // Determine clipped contact points
+      if (referenceIsA)
+      {
+        ClipPolyToPoly(polyA, polyB, referenceEdgeIndex, out contacts);
+      } else
+      {
+        ClipPolyToPoly(polyB, polyA, referenceEdgeIndex, out contacts);
+      }
+
       return true;
     }
 
@@ -846,8 +972,8 @@ namespace Volatile
     }
 
     private static void ClipPolyToPoly(
-      VoltBody referenceBody, VoltPolygon referencePoly,
-      VoltBody incidentObject, VoltPolygon incidentPoly,
+      VoltPolygon referencePoly,
+      VoltPolygon incidentPoly,
       int referenceEdgeIndex,
       out List<VoltVector2> finalPoints
       )

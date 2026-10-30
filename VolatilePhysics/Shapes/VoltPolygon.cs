@@ -185,6 +185,23 @@ namespace Volatile
       this.worldSpaceAABB = 
         VoltPolygon.ComputeBounds(this.worldVertices, this.countWorld);
     }
+    
+    internal override void ApplyPosition(VoltVector2 position, VoltVector2 facing)
+    {
+      for (int i = 0; i < this.countWorld; i++)
+      {
+        this.worldVertices[i] =
+          VoltMath.BodyToWorldPoint(position, facing, this.bodyVertices[i]);
+
+        VoltVector2 normal = this.bodyAxes[i].Normal.Rotate(facing);
+        Fix64 width = VoltVector2.Dot(normal, position) + this.bodyAxes[i].Width;
+        this.worldAxes[i] = new Axis(normal, width);
+      }
+
+      this.worldSpaceAABB = 
+        VoltPolygon.ComputeBounds(this.worldVertices, this.countWorld);
+    }
+
     #endregion
 
     #region Test Overrides

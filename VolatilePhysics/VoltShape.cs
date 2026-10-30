@@ -248,6 +248,7 @@ namespace Volatile
     #region Functionality Overrides
     protected abstract void ComputeMetrics();
     protected abstract void ApplyBodyPosition();
+    internal abstract void ApplyPosition(VoltVector2 position, VoltVector2 facing);
     #endregion
 
     #region Test Overrides

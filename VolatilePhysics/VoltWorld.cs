@@ -82,6 +82,7 @@ namespace Volatile
 
         private VoltBuffer<VoltBody> reusableBuffer;
         private VoltBuffer<VoltBody> reusableOutput;
+        private VoltBuffer<Intersection> intersectionBuffer;
 
         // Each World instance should own its own object pools, in case
         // you want to run multiple World instances simultaneously.
@@ -91,6 +92,7 @@ namespace Volatile
 
         private IVoltPool<Contact> contactPool;
         private IVoltPool<Manifold> manifoldPool;
+        private IVoltPool<Intersection> intersectionPool;
 
         internal bool RequireDynamicSort = false;
 
@@ -113,6 +115,7 @@ namespace Volatile
 
             this.reusableBuffer = new VoltBuffer<VoltBody>();
             this.reusableOutput = new VoltBuffer<VoltBody>();
+            this.intersectionBuffer = new VoltBuffer<Intersection>();
 
             this.bodyPool = new VoltPool<VoltBody>();
             this.circlePool = new VoltPool<VoltShape, VoltCircle>();
@@ -120,6 +123,7 @@ namespace Volatile
 
             this.contactPool = new VoltPool<Contact>();
             this.manifoldPool = new VoltPool<Manifold>();
+            this.intersectionPool = new VoltPool<Intersection>();
         }
 
         /// <summary>
@@ -539,6 +543,62 @@ namespace Volatile
             return this.reusableOutput;
         }
 
+        public VoltBuffer<Intersection> QueryIntersection(
+          VoltShape shape,
+          VoltVector2 position,
+          Fix64 radians,
+          VoltBodyFilter filter = null)
+        {
+            VoltVector2 Facing = VoltMath.Polar(radians);
+            return QueryIntersection(shape, position, Facing, filter);
+        }
+        
+
+        public VoltBuffer<Intersection> QueryIntersection(
+          VoltShape shape,
+          VoltVector2 position,
+          VoltVector2 facing,
+          VoltBodyFilter filter = null)
+        {
+            this.intersectionBuffer.Clear();
+
+            //Will not query shapes of active bodies, query is destructive to worldVertices
+            if (shape.Body != null)
+                return this.intersectionBuffer;
+            
+            shape.ApplyPosition(position, facing);
+
+            this.intersectionBuffer.Clear();
+            VoltAABB aabb = shape.AABB;
+            this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
+            this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
+
+            this.reusableOutput.Clear();
+            for (int i = 0; i < this.reusableBuffer.Count; i++)
+            {
+                VoltBody body = this.reusableBuffer[i];
+                if (VoltBody.Filter(body, filter))
+                    if (body.QueryAABB(aabb))
+                        this.reusableOutput.Add(body);
+            }
+
+            Console.WriteLine("Working: Overlap" + this.reusableOutput.Count);
+
+            for (int i = 0; i < this.reusableOutput.Count; i++)
+            {
+                VoltBody body = this.reusableOutput[i];
+                Console.WriteLine("Working: shapes" + body.shapes.Length);
+                for (int q = 0; q < body.shapes.Length; q++)
+                {
+                    Intersection inter = Query.Dispatch(this, shape, body.shapes[q]);
+                    if (inter != null)
+                        intersectionBuffer.Add(inter);
+                }
+            }
+
+            return this.intersectionBuffer;
+        }
+
         /// <summary>
         /// Performs a raycast on all world bodies.
         /// </summary>
@@ -672,6 +732,11 @@ namespace Volatile
             return this.manifoldPool.Allocate();
         }
 
+        internal Intersection AllocateIntersection()
+        {
+            return this.intersectionPool.Allocate();
+        }
+
         private void FreeBody(VoltBody body)
         {
             this.bodyPool.Deallocate(body);
@@ -688,6 +753,12 @@ namespace Volatile
         {
             for (int i = 0; i < contacts.Count; i++)
                 this.contactPool.Deallocate(contacts[i]);
+        }
+
+        internal void FreeIntersections(IList<Intersection> Intersections)
+        {
+            for (int i = 0; i < Intersections.Count; i++)
+                this.intersectionPool.Deallocate(Intersections[i]);
         }
 
         internal void FreeShape(VoltShape shape)

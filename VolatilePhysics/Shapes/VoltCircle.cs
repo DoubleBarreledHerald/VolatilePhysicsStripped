@@ -99,6 +99,12 @@ namespace Volatile
         this.Body.BodyToWorldPointCurrent(this.bodySpaceOrigin);
       this.worldSpaceAABB = new VoltAABB(this.worldSpaceOrigin, this.radius);
     }
+
+    internal override void ApplyPosition(VoltVector2 position, VoltVector2 facing)
+    {
+      this.worldSpaceOrigin = position;
+      this.worldSpaceAABB = new VoltAABB(position, this.radius);
+    }
     #endregion
 
     #region Test Overrides
