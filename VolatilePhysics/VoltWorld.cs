@@ -500,6 +500,13 @@ namespace Volatile
           VoltBodyFilter filter = null)
         {
             aabb = new VoltAABB(aabb.Center * this.InvWorldScale, aabb.Extent * this.InvWorldScale);
+
+            return _QueryOverlap(aabb, filter);
+        }
+        private VoltBuffer<VoltBody> _QueryOverlap(
+          VoltAABB aabb,
+          VoltBodyFilter filter = null)
+        {
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
@@ -527,6 +534,13 @@ namespace Volatile
           VoltBodyFilter filter = null)
         {
             aabb = new VoltAABB(aabb.Center * this.InvWorldScale, aabb.Extent * this.InvWorldScale);
+
+            return _QueryOverlapBody(aabb, filter);
+        }
+        public VoltBuffer<VoltBody> _QueryOverlapBody(
+          VoltAABB aabb,
+          VoltBodyFilter filter = null)
+        {
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
@@ -567,24 +581,13 @@ namespace Volatile
                 return this.intersectionBuffer;
             
             shape.ApplyPosition(position, facing);
+            VoltAABB aabb = shape.worldSpaceAABB;
 
-            this.intersectionBuffer.Clear();
-            VoltAABB aabb = shape.AABB;
-            this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
-            this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
+            var test = _QueryOverlap(aabb, filter);
 
-            this.reusableOutput.Clear();
-            for (int i = 0; i < this.reusableBuffer.Count; i++)
+            for (int i = 0; i < test.Count; i++)
             {
-                VoltBody body = this.reusableBuffer[i];
-                if (VoltBody.Filter(body, filter))
-                    if (body.QueryAABB(aabb))
-                        this.reusableOutput.Add(body);
-            }
-
-            for (int i = 0; i < this.reusableOutput.Count; i++)
-            {
-                VoltBody body = this.reusableOutput[i];
+                VoltBody body = test[i];
                 for (int q = 0; q < body.shapes.Length; q++)
                 {
                     Intersection inter = Query.Dispatch(this, shape, body.shapes[q]);
