@@ -89,10 +89,7 @@ namespace Volatile
 
     public bool IsInWorld { get { return this.World != null; } }
 
-    public VoltVector2 Position {
-      get { return InternalPosition * World.WorldScale; }
-    }
-    public VoltVector2 InternalPosition { get; private set; }
+    public VoltVector2 Position { get; private set; }
 
     public VoltVector2 Facing { get; private set; }
 
@@ -122,15 +119,11 @@ namespace Volatile
     
     public VoltCollisionFilter CollisionFilter { private get; set; }
 
-    public VoltVector2 LinearVelocity {
-      get { return InternalLinearVelocity * World.WorldScale; }
-    }
-
     /// <summary>
     /// The local linear damping.
     /// </summary>
     public VoltVector2 LinearDamping { get; set; } = VoltVector2.one;
-    public VoltVector2 InternalLinearVelocity { get; set; }
+    public VoltVector2 LinearVelocity { get; set; }
 
     /// <summary>
     /// Current angle in radians.
@@ -236,7 +229,7 @@ namespace Volatile
       Fix64 radians,
       VoltShape[] shapesToAdd)
     {
-      this.InternalPosition = position;
+      this.Position = position;
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
 
@@ -281,7 +274,7 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (IsFixedPosition) return;
-      this.InternalLinearVelocity += force * InvMass * World.InvWorldScale;
+      this.LinearVelocity += force * InvMass;
       CheckWakeUp();
     }
 
@@ -289,25 +282,14 @@ namespace Volatile
     {
       if (IsEnabled == false) return;
       if (IsFixedPosition) return;
-      this.InternalLinearVelocity += force * InvMass * World.InvWorldScale;
-      this.AngularVelocity -= VoltMath.Cross(this.InternalPosition - point, force) * InvMass;
+      this.LinearVelocity += force * InvMass;
+      this.AngularVelocity -= VoltMath.Cross(this.Position - point, force) * InvMass;
       CheckWakeUp();
     }
 
-    /// <summary>
-    /// Unsafe Set. Position is altered by world scale and is liable to error.
-    /// </summary>
     public void Set(VoltVector2 position, Fix64 radians)
     {
-      SafeSet(position * World.InvWorldScale, radians);
-    }
-
-    /// <summary>
-    /// Safe Set. Internal position is not altered by world scale and is safe from error.
-    /// </summary>
-    public void SafeSet(VoltVector2 internalPosition, Fix64 radians)
-    {
-      this.InternalPosition = internalPosition;
+      this.Position = position;
       this.Angle = radians;
       this.Facing = VoltMath.Polar(radians);
       this.OnPositionUpdated();
@@ -389,7 +371,7 @@ namespace Volatile
 
     //REF: https://github.com/schteppe/p2.js/blob/2beb2750f42d29014e289cb803b7269d5b0edaad/src/world/World.js#L920
     private bool CheckSleepy(){
-      var speedSquared = this.InternalLinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
+      var speedSquared = this.LinearVelocity.LengthSquared() + Fix64.Pow(Fix64.Abs(this.AngularVelocity), (Fix64)2);
       var speedLimitSquared = Fix64.Pow(this.SleepEpsilon, (Fix64)2);
 
       // Add to idle time
@@ -608,11 +590,11 @@ namespace Volatile
     /// </summary>
     internal void PartialReset()
     {
-      InternalPosition = VoltVector2.zero;
+      Position = VoltVector2.zero;
       Facing = VoltVector2.zero;
       AABB = new VoltAABB();
 
-      this.InternalLinearVelocity = VoltVector2.zero;
+      this.LinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
     }
 
@@ -633,7 +615,7 @@ namespace Volatile
       this.CollisionFilter = null;
 
       this.Angle = Fix64.Zero;
-      this.InternalLinearVelocity = VoltVector2.zero;
+      this.LinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
 
       this._mass = null;
@@ -642,7 +624,7 @@ namespace Volatile
       this.InvMass = Fix64.Zero;
       this.InvInertia = Fix64.Zero;
 
-      InternalPosition = VoltVector2.zero;
+      Position = VoltVector2.zero;
       Facing = VoltVector2.zero;
       AABB = new VoltAABB();
     }
@@ -694,10 +676,10 @@ namespace Volatile
     internal void ApplyImpulse(VoltVector2 impulse, VoltVector2 worldPoint) {
       if (IsEnabled == false) return;
 
-      VoltVector2 r = worldPoint - this.InternalPosition;
+      VoltVector2 r = worldPoint - this.Position;
 
       if (!IsFixedPosition)
-        this.InternalLinearVelocity = this.InternalLinearVelocity + (impulse * InvMass);
+        this.LinearVelocity = this.LinearVelocity + (impulse * InvMass);
       if (!IsFixedAngle)
         this.AngularVelocity -= this.InvInertia * VoltMath.Cross(impulse, r);
     }
@@ -759,19 +741,19 @@ namespace Volatile
       // Apply damping
       if (!IsFixedPosition)
       {
-        Fix64 xSign = (Fix64)Fix64.Sign(this.InternalLinearVelocity.x);
-        Fix64 xVelocity = Fix64.Abs(this.InternalLinearVelocity.x);
+        Fix64 xSign = (Fix64)Fix64.Sign(this.LinearVelocity.x);
+        Fix64 xVelocity = Fix64.Abs(this.LinearVelocity.x);
           xVelocity -= xVelocity * this.LinearDamping.x * World.DeltaTime;
           xVelocity -= xVelocity * this.World.LinearDamping.x * World.DeltaTime;
           xVelocity = VoltMath.Max(xVelocity, Fix64.Zero);
           
-        Fix64 ySign = (Fix64)Fix64.Sign(this.InternalLinearVelocity.y);
-        Fix64 yVelocity = Fix64.Abs(this.InternalLinearVelocity.y);
+        Fix64 ySign = (Fix64)Fix64.Sign(this.LinearVelocity.y);
+        Fix64 yVelocity = Fix64.Abs(this.LinearVelocity.y);
           yVelocity -= yVelocity * this.LinearDamping.y * World.DeltaTime;
           yVelocity -= yVelocity * this.World.LinearDamping.y * World.DeltaTime;
           yVelocity = VoltMath.Max(yVelocity, Fix64.Zero);
 
-        this.InternalLinearVelocity = new VoltVector2(xVelocity * xSign, yVelocity * ySign);
+        this.LinearVelocity = new VoltVector2(xVelocity * xSign, yVelocity * ySign);
       }
 
       if (!IsFixedAngle)
@@ -797,10 +779,10 @@ namespace Volatile
 
       //Apply global gravity
       if (this.IsAffectedByWorldGravity)
-        this.InternalLinearVelocity += this.World.Gravity * this.World.DeltaTime * SleepDelta * mult;
+        this.LinearVelocity += this.World.Gravity * this.World.DeltaTime * SleepDelta * mult;
 
       //Apply personal gravity
-      this.InternalLinearVelocity += Gravity * this.World.DeltaTime * SleepDelta * mult;
+      this.LinearVelocity += Gravity * this.World.DeltaTime * SleepDelta * mult;
     }
 
     internal void IntegrateVelocity()
@@ -823,14 +805,14 @@ namespace Volatile
       if (!isAwake) return;
 
       VoltVector2 targetPosition =
-        this.InternalPosition + this.World.DeltaTime * this.InternalLinearVelocity;
+        this.Position + this.World.DeltaTime * this.LinearVelocity;
 
       if (RaycastMove)
       {
         IntegrateRaycastMove(ref targetPosition);
       }
 
-      this.InternalPosition = targetPosition;
+      this.Position = targetPosition;
     }
 
     private void IntegrateRotation()
@@ -850,15 +832,15 @@ namespace Volatile
 
     private void IntegrateRaycastMove(ref VoltVector2 targetPosition)
     {
-      if ((InternalPosition - targetPosition).Length() == Fix64.Zero) 
+      if ((Position - targetPosition).Length() == Fix64.Zero) 
         return;
 
-      if (World.QueryPointInternal(InternalPosition, CanCollideRay).Count > 0)
+      if (World.QueryPoint(Position, CanCollideRay).Count > 0)
         return;
 
       //Raycast from current position to target position
-      var ray = new VoltRayCast(InternalPosition * World.WorldScale, targetPosition * World.WorldScale);
-      rayMoveOrigin = InternalPosition;
+      var ray = new VoltRayCast(Position, targetPosition);
+      rayMoveOrigin = Position;
       rayMoveTarget = targetPosition;
       var result = new VoltRayResult();
 
@@ -866,14 +848,14 @@ namespace Volatile
       if (World.RayCast(ref ray, ref result, CanCollideRay))
       {
         //move to collision point
-        targetPosition = result.InternalComputePoint(ref ray);
+        targetPosition = result.ComputePoint(ref ray);
         return;
       }
     }
 
     public void ClearVelocities()
     {
-      this.InternalLinearVelocity = VoltVector2.zero;
+      this.LinearVelocity = VoltVector2.zero;
       this.AngularVelocity = Fix64.Zero;
     }
 
@@ -929,7 +911,7 @@ namespace Volatile
 #region World-Space to Body-Space Transformations
     internal VoltVector2 WorldToBodyPoint(VoltVector2 vector)
     {
-      return VoltMath.WorldToBodyPoint(this.InternalPosition, this.Facing, vector);
+      return VoltMath.WorldToBodyPoint(this.Position, this.Facing, vector);
     }
 
     internal VoltVector2 WorldToBodyDirection(VoltVector2 vector)
@@ -949,7 +931,7 @@ namespace Volatile
     #region Body-Space to World-Space Transformations
     internal VoltVector2 BodyToWorldPoint(VoltVector2 vector)
     {
-      return VoltMath.BodyToWorldPoint(this.InternalPosition, this.Facing, vector);
+      return VoltMath.BodyToWorldPoint(this.Position, this.Facing, vector);
     }
 
     internal VoltVector2 BodyToWorldDirection(VoltVector2 vector)
@@ -960,7 +942,7 @@ namespace Volatile
     internal Axis BodyToWorldAxis(Axis axis)
     {
       VoltVector2 normal = axis.Normal.Rotate(this.Facing);
-      Fix64 width = VoltVector2.Dot(normal, this.InternalPosition) + axis.Width;
+      Fix64 width = VoltVector2.Dot(normal, this.Position) + axis.Width;
       return new Axis(normal, width);
     }
     #endregion

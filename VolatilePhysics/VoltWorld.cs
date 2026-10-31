@@ -42,13 +42,6 @@ namespace Volatile
             this.DeltaTime = deltaTimeSeconds / (Fix64)SubStepCount;
         }
 
-        public Fix64 WorldScale { get { return this._worldScale; } set{
-            this._worldScale = value;
-            this.InvWorldScale = (Fix64)((decimal)1 / (decimal)value);
-        } }
-        private Fix64 _worldScale = Fix64.One;
-        public Fix64 InvWorldScale {get; private set;} = Fix64.One;
-
         /// <summary>
         /// Number of iterations when updating the world.
         /// Defaults to Config.DEFAULT_ITERATION_COUNT.
@@ -266,8 +259,6 @@ namespace Volatile
         public VoltPolygon CreatePolygonWorldSpace(
           VoltVector2[] worldVertices, Fix64 density, Fix64 friction, Fix64 restitution)
         {
-            for (int i = 0; i < worldVertices.Count(); i++)
-                worldVertices[i] *= this.InvWorldScale;
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromWorldVertices(
               worldVertices,
@@ -293,8 +284,6 @@ namespace Volatile
         public VoltPolygon CreatePolygonBodySpace(
           VoltVector2[] bodyVertices, Fix64 density, Fix64 friction, Fix64 restitution)
         {
-            for (int i = 0; i < bodyVertices.Count(); i++)
-                bodyVertices[i] *= this.InvWorldScale;
             VoltPolygon polygon = (VoltPolygon)this.polygonPool.Allocate();
             polygon.InitializeFromBodyVertices(
               bodyVertices,
@@ -320,8 +309,6 @@ namespace Volatile
         public VoltCircle CreateCircleWorldSpace(
           VoltVector2 worldSpaceOrigin, Fix64 radius, Fix64 density, Fix64 friction, Fix64 restitution)
         {
-            worldSpaceOrigin *= InvWorldScale;
-            radius *= InvWorldScale;
             VoltCircle circle = (VoltCircle)this.circlePool.Allocate();
             circle.InitializeFromWorldSpace(
               worldSpaceOrigin,
@@ -430,14 +417,6 @@ namespace Volatile
           VoltVector2 point,
           VoltBodyFilter filter = null)
         {
-            point *= this.InvWorldScale;
-            return QueryPointInternal(point, filter);
-        }
-
-        internal VoltBuffer<VoltBody> QueryPointInternal(
-          VoltVector2 point,
-          VoltBodyFilter filter = null)
-        {
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryPoint(point, this.reusableBuffer);
             this.dynamicBroadphase.QueryPoint(point, this.reusableBuffer);
@@ -464,8 +443,6 @@ namespace Volatile
           Fix64 radius,
           VoltBodyFilter filter = null)
         {
-            origin *= this.InvWorldScale;
-            radius *= this.InvWorldScale;
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
             this.dynamicBroadphase.QueryCircle(origin, radius, this.reusableBuffer);
@@ -499,14 +476,6 @@ namespace Volatile
           VoltAABB aabb,
           VoltBodyFilter filter = null)
         {
-            aabb = new VoltAABB(aabb.Center * this.InvWorldScale, aabb.Extent * this.InvWorldScale);
-
-            return _QueryOverlap(aabb, filter);
-        }
-        private VoltBuffer<VoltBody> _QueryOverlap(
-          VoltAABB aabb,
-          VoltBodyFilter filter = null)
-        {
             this.reusableBuffer.Clear();
             this.staticBroadphase.QueryOverlap(aabb, this.reusableBuffer);
             this.dynamicBroadphase.QueryOverlap(aabb, this.reusableBuffer);
@@ -530,14 +499,6 @@ namespace Volatile
         /// invalidate the resulting enumeration from this function.
         /// </summary>
         public VoltBuffer<VoltBody> QueryOverlapBody(
-          VoltAABB aabb,
-          VoltBodyFilter filter = null)
-        {
-            aabb = new VoltAABB(aabb.Center * this.InvWorldScale, aabb.Extent * this.InvWorldScale);
-
-            return _QueryOverlapBody(aabb, filter);
-        }
-        public VoltBuffer<VoltBody> _QueryOverlapBody(
           VoltAABB aabb,
           VoltBodyFilter filter = null)
         {
@@ -583,7 +544,7 @@ namespace Volatile
             shape.ApplyPosition(position, facing);
             VoltAABB aabb = shape.worldSpaceAABB;
 
-            var test = _QueryOverlap(aabb, filter);
+            var test = QueryOverlap(aabb, filter);
 
             for (int i = 0; i < test.Count; i++)
             {
@@ -607,7 +568,7 @@ namespace Volatile
           ref VoltRayResult result,
           VoltBodyFilter filter = null)
         {
-            ray = new VoltRayCast(ray.origin * this.InvWorldScale, (ray.origin + ray.direction * ray.distance) * this.InvWorldScale);
+            ray = new VoltRayCast(ray.origin, ray.origin + ray.direction * ray.distance);
             this.reusableBuffer.Clear();
             this.staticBroadphase.RayCast(ref ray, this.reusableBuffer);
             this.dynamicBroadphase.RayCast(ref ray, this.reusableBuffer);
@@ -635,8 +596,7 @@ namespace Volatile
           ref VoltRayResult result,
           VoltBodyFilter filter = null)
         {
-            ray = new VoltRayCast(ray.origin * this.InvWorldScale, (ray.origin + ray.direction * ray.distance) * this.InvWorldScale);
-            radius = radius * this.InvWorldScale;
+            ray = new VoltRayCast(ray.origin, ray.origin + ray.direction * ray.distance);
             this.reusableBuffer.Clear();
             this.staticBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);
             this.dynamicBroadphase.CircleCast(ref ray, radius, this.reusableBuffer);

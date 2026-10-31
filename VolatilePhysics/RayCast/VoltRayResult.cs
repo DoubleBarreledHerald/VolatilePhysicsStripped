@@ -52,11 +52,6 @@ namespace Volatile
 
     public VoltVector2 ComputePoint(ref VoltRayCast cast)
     {
-      return (cast.origin + (cast.direction * this.distance)) * Body.World.WorldScale;
-    }
-
-    internal VoltVector2 InternalComputePoint(ref VoltRayCast cast)
-    {
       return cast.origin + (cast.direction * this.distance);
     }
 

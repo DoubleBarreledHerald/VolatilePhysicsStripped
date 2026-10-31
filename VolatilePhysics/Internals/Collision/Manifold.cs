@@ -77,8 +77,7 @@ namespace Volatile
         return false;
 
       Fix64 absPenetration = Fix64.Abs(penetration);
-      absPenetration *= ShapeA.Body.World.WorldScale;
-      VoltVector2 worldPos = position * ShapeA.Body.World.WorldScale;
+      VoltVector2 worldPos = position;
 
       VoltWorld.contactPoints.Add(worldPos);
       HandleCollision(ShapeA, ShapeB, worldPos, normal, absPenetration);
