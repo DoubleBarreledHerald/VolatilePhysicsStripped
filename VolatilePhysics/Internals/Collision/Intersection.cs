@@ -12,11 +12,11 @@ namespace Volatile
     void IVoltPoolable<Intersection>.Reset() { this.Reset(); }
     #endregion
 
-    private VoltShape voltShapeA;
-    private VoltShape voltShapeB;
-    private List<VoltVector2> worldPoints;
-    private VoltVector2 normal;
-    private Fix64 penetration;
+    public VoltShape voltShapeA { get; private set; }
+    public VoltShape voltShapeB { get; private set; }
+    public List<VoltVector2> worldPoints { get; private set; }
+    public VoltVector2 normal { get; private set; }
+    public Fix64 penetration { get; private set; }
 
     public Intersection()
     {
